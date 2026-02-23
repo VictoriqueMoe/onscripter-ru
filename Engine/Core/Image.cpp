@@ -549,17 +549,25 @@ void ONScripter::makeNegaTarget(GPU_Target *target, GPU_Rect clip) {
 		return;
 	}
 
-	gpu.setShaderProgram("colorModification.frag");
-	gpu.bindImageToSlot(target->image, 0);
+#ifdef __EMSCRIPTEN__
+	GPU_Image *src = GPU_CopyImage(target->image);
+#else
+	GPU_Image *src = target->image;
+#endif
 
+	gpu.setShaderProgram("colorModification.frag");
+	gpu.bindImageToSlot(src, 0);
 	gpu.setShaderVar("modificationType", 5);
 
-	//Switch to canvas coordinate system
 	clip.x += camera.center_pos.x;
 	clip.y += camera.center_pos.y;
 
-	gpu.copyGPUImage(target->image, nullptr, &clip, target);
+	gpu.copyGPUImage(src, nullptr, &clip, target);
 	gpu.unsetShaderProgram();
+
+#ifdef __EMSCRIPTEN__
+	GPU_FreeImage(src);
+#endif
 }
 
 void ONScripter::makeMonochromeTarget(GPU_Target *target, GPU_Rect clip, bool before_scene) {
@@ -568,18 +576,26 @@ void ONScripter::makeMonochromeTarget(GPU_Target *target, GPU_Rect clip, bool be
 		return;
 	}
 
-	gpu.setShaderProgram("colorModification.frag");
-	gpu.bindImageToSlot(target->image, 0);
+#ifdef __EMSCRIPTEN__
+	GPU_Image *src = GPU_CopyImage(target->image);
+#else
+	GPU_Image *src = target->image;
+#endif
 
+	gpu.setShaderProgram("colorModification.frag");
+	gpu.bindImageToSlot(src, 0);
 	gpu.setShaderVar("modificationType", 4);
 	gpu.setShaderVar("greyscaleHue", monocro_color[before_scene]);
 
-	//Switch to canvas coordinate system
 	clip.x += camera.center_pos.x;
 	clip.y += camera.center_pos.y;
 
-	gpu.copyGPUImage(target->image, nullptr, &clip, target);
+	gpu.copyGPUImage(src, nullptr, &clip, target);
 	gpu.unsetShaderProgram();
+
+#ifdef __EMSCRIPTEN__
+	GPU_FreeImage(src);
+#endif
 }
 
 void ONScripter::makeBlurTarget(GPU_Target *target, GPU_Rect clip, bool before_scene) {

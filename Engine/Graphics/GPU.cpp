@@ -499,6 +499,15 @@ void GPUController::copyGPUImage(GPU_Image *img, GPU_Rect *src_rect, GPU_Rect *c
 	if (clip_rect && (clip_rect->w == 0 || clip_rect->h == 0))
 		return;
 
+#ifdef __EMSCRIPTEN__
+	if (img->target == target) {
+		GPU_Image *tmp = GPU_CopyImage(img);
+		copyGPUImage(tmp, src_rect, clip_rect, target, x, y, ratio_x, ratio_y, angle, centre_coordinates);
+		GPU_FreeImage(tmp);
+		return;
+	}
+#endif
+
 #ifdef IOS
 	// On iOS performing an intermediate image copy does not guarantee maintaing the same quality
 	// This particularly affects accumulation_gpu -> effect_dst_gpu and vice versa
