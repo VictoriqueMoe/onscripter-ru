@@ -1862,27 +1862,33 @@ void ONScripter::executeLabel() {
 			int ret{RET_NO_READ};
 #ifdef __EMSCRIPTEN__
 			{
-				static int execDiag = 0;
+				static int execCount = 0;
 				static bool pastStart = false;
+				execCount++;
 				if (!pastStart && current_label_info && current_label_info->name) {
-					if (strcmp(current_label_info->name, "start") == 0 ||
-						strcmp(current_label_info->name, "first_setting") == 0 ||
-						strcmp(current_label_info->name, "first_setting3") == 0) {
+					if (strcmp(current_label_info->name, "start") == 0) {
 						pastStart = true;
-						execDiag = 0;
+						fprintf(stderr, "=== REACHED *start at execCount=%d ===\n", execCount);
 					}
 				}
-				if (pastStart && execDiag < 100) {
-					bool sep = scriptExecutionPermitted();
+				if (execCount % 5000 == 0 || pastStart) {
 					auto st = script_h.getCurrent();
 					auto firstRN0 = strpbrk(st, "\r\n");
 					int eol = firstRN0 ? static_cast<int>(firstRN0 - st) : 40;
 					if (eol > 120) {
 						eol = 120;
 					}
-					fprintf(stderr, "exec #%d [%s:%d] sep=%d cmd=%.*s\n",
-						execDiag, current_label_info->name, current_line, sep ? 1 : 0, eol, st);
-					execDiag++;
+					if (pastStart) {
+						static int startLog = 0;
+						if (startLog < 200) {
+							fprintf(stderr, "exec[%s:%d] #%d cmd=%.*s\n",
+								current_label_info->name, current_line, execCount, eol, st);
+							startLog++;
+						}
+					} else {
+						fprintf(stderr, "define[%s:%d] #%d cmd=%.*s\n",
+							current_label_info ? current_label_info->name : "?", current_line, execCount, eol, st);
+					}
 				}
 			}
 #endif
