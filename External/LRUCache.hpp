@@ -123,13 +123,12 @@ public:
 	 */
 	ItemType get(const KeyType& key) {
 		const auto i = cache.find(key);
-		
+
 		if (i == cache.end()) {
-			throw 0;  // Return the default value for ItemType.
+			return ItemType{};
 		} else {
-			// Move the key back to the end of the lru (making it the most recently visited).
 			lru.splice(lru.end(), lru, i->second.second);
-			
+
 			return i->second.first;
 		}
 	}
