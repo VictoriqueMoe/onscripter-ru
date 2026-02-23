@@ -1449,6 +1449,17 @@ void ONScripter::flush(int refresh_mode, GPU_Rect *scene_rect, GPU_Rect *hud_rec
 		return; // Ignore this flush. Do not rebuild the scene or erase any dirty rects.
 	}
 
+#ifdef __EMSCRIPTEN__
+	static int flushDiag = 0;
+	if (flushDiag < 10) {
+		fprintf(stderr, "flush: mode=0x%x direct=%d pre_screen=%d before_scene_empty=%d before_hud_empty=%d scene_empty=%d hud_empty=%d\n",
+			refresh_mode, direct_flag, pre_screen_render,
+			before_dirty_rect_scene.isEmpty(), before_dirty_rect_hud.isEmpty(),
+			dirty_rect_scene.isEmpty(), dirty_rect_hud.isEmpty());
+		flushDiag++;
+	}
+#endif
+
 	if (direct_flag || pre_screen_render || onionAlphaCooldown || onionAlphaFactor) {
 		GPU_Rect full_rect = full_script_clip;
 		if (!scene_rect)
