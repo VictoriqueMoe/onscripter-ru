@@ -17,6 +17,10 @@
 
 #include <ctime>
 
+#ifdef __EMSCRIPTEN__
+extern void emscripten_sync_idbfs();
+#endif
+
 const uint32_t SAVEFILE_MAGIC_NUMBER = 0x534E4F52; // RONS
 const uint32_t SAVEFILE_INIT_HASH    = 0x69F23B1B;
 const uint32_t SAVEFILE_HASH_LENGH   = sizeof(uint32_t);
@@ -963,6 +967,9 @@ int ONScripter::saveSaveFile(int no, const char *savestr, bool no_error) {
 		if (saveFileIOBuf(filename)) {
 			return -1;
 		}
+#ifdef __EMSCRIPTEN__
+		emscripten_sync_idbfs();
+#endif
 	}
 
 	return 0;

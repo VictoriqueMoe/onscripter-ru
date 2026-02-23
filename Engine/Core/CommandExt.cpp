@@ -30,6 +30,17 @@
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
+
+EM_ASYNC_JS(void, emscripten_sync_idbfs, (), {
+	await new Promise(function(resolve) {
+		FS.syncfs(false, function(err) {
+			if (err) {
+				console.warn("IDBFS sync error:", err);
+			}
+			resolve();
+		});
+	});
+});
 #endif
 
 int ONScripter::zOrderOverridePreserveCommand() {
@@ -1548,6 +1559,7 @@ int ONScripter::rumbleCommand() {
 int ONScripter::relaunchCommand() {
 	sendToLog(LogLevel::Info, "Relaunching...\n");
 #ifdef __EMSCRIPTEN__
+	emscripten_sync_idbfs();
 	EM_ASM(
 		location.reload();
 	);
@@ -1978,6 +1990,9 @@ int ONScripter::operateConfigCommand() {
 			             configData;
 			ons.errorAndCont(configData.c_str(), nullptr, "I/O Warning", true, true);
 		}
+#ifdef __EMSCRIPTEN__
+		emscripten_sync_idbfs();
+#endif
 	}
 
 	return RET_CONTINUE;
