@@ -28,6 +28,10 @@
 #include <malloc/malloc.h>
 #endif
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 int ONScripter::zOrderOverridePreserveCommand() {
 	preserve = !preserve;
 	return RET_CONTINUE;
@@ -1543,6 +1547,13 @@ int ONScripter::rumbleCommand() {
 
 int ONScripter::relaunchCommand() {
 	sendToLog(LogLevel::Info, "Relaunching...\n");
+#ifdef __EMSCRIPTEN__
+	EM_ASM(
+		location.reload();
+	);
+	emscripten_sleep(5000);
+	return RET_CONTINUE;
+#endif
 	cleanLabel();
 	ctrl.deinit();
 

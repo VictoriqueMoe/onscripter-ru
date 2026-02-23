@@ -252,7 +252,11 @@ public:
 	int screenFlipCommand();
 	[[noreturn]] int saveresetCommand();
 	int rumbleCommand();
+#ifdef __EMSCRIPTEN__
+	int relaunchCommand();
+#else
 	[[noreturn]] int relaunchCommand();
+#endif
 	int regexDefineCommand();
 	int quakeApiCommand();
 	int quakeendCommand();
