@@ -1788,7 +1788,16 @@ void ONScripter::updateButtonsToDefaultState(GPU_Rect &check_src_rect, GPU_Rect 
 void ONScripter::executeLabel() {
 	int last_token_line = -1;
 
+	fprintf(stderr, "[DEBUG] executeLabel: entering, label=%s, lines=%d, current_line=%d, mode=%d\n",
+	        current_label_info->name ? current_label_info->name : "(null)",
+	        current_label_info->num_of_lines, current_line, current_mode);
+	fflush(stderr);
+
 	while (true) {
+		fprintf(stderr, "[DEBUG] executeLabel outer loop: label=%s, lines=%d, current_line=%d\n",
+		        current_label_info->name ? current_label_info->name : "(null)",
+		        current_label_info->num_of_lines, current_line);
+		fflush(stderr);
 		while (current_line < current_label_info->num_of_lines) {
 			if ((debug_level > 1) && (last_token_line != current_line) &&
 			    (script_h.getStringBufferR()[0] != 0x0a)) {
@@ -1863,48 +1872,31 @@ void ONScripter::executeLabel() {
 			} else if (dlgCtrl.wantsControl() && !callStackHasUninterruptible) {
 				ret = dlgCtrl.processDialogueEvents();
 			} else if (scriptExecutionPermitted()) {
-
-				//static auto prevEnd = SDL_GetPerformanceCounter();
-				//auto start = SDL_GetPerformanceCounter();
-
-				// Very useful debugging code! :)
-				// Uncomment to use
-				/*{
-					std::ostringstream logStream;
-					logStream << "Since last command: " << (start-prevEnd);
-					if (script_h.debugCommandLog.size() > 300) script_h.debugCommandLog.pop_front();
-					script_h.debugCommandLog.push_back(logStream.str());
-				}
-				
 				{
-					auto st = script_h.getCurrent();
-					auto firstRN0 = strpbrk(st, "\r\n\0");
-					int eol = firstRN0 ? firstRN0 - st : 0;
-					std::string log;
-					log.insert(0, st, eol);
-					//if (script_h.getStringBuffer()) {
-					//	log += "(((";
-					//	log += script_h.getStringBuffer();
-					//	log += ")))";
-					//}
-					if (script_h.debugCommandLog.size() > 300) script_h.debugCommandLog.pop_front();
-					script_h.debugCommandLog.push_back(log);
-					log.clear();
-				}*/
+					static int cmdCount = 0;
+					cmdCount++;
+					const char *cmdBuf = script_h.getStringBuffer();
+					if (cmdCount <= 20 || (cmdBuf && (strncmp(cmdBuf, "game", 4) == 0 || strncmp(cmdBuf, "end", 3) == 0))) {
+						fprintf(stderr, "[DEBUG] executeLabel cmd #%d: line=%d/%d label=%s cmd=%.60s\n",
+						        cmdCount, current_line, current_label_info->num_of_lines,
+						        current_label_info->name ? current_label_info->name : "(null)",
+						        cmdBuf ? cmdBuf : "(null)");
+						fflush(stderr);
+					}
+				}
 
-				// count script execution time
 				auto start = SDL_GetPerformanceCounter();
 				ret        = ScriptParser::parseLine();
 				if (ret == RET_NOMATCH)
 					ret = this->parseLine();
 				commandExecutionTime += SDL_GetPerformanceCounter() - start;
-
-				/*std::ostringstream logStream;
-				logStream << "Command execution time: " << (end-start);
-				if (script_h.debugCommandLog.size() > 300) script_h.debugCommandLog.pop_front();
-				script_h.debugCommandLog.push_back(logStream.str());
-				
-				prevEnd = end;*/
+			} else {
+				static int skippedCount = 0;
+				skippedCount++;
+				if (skippedCount <= 5) {
+					fprintf(stderr, "[DEBUG] executeLabel: scriptExecutionPermitted=false, skipping line=%d\n", current_line);
+					fflush(stderr);
+				}
 			}
 
 			// These need to execute in both cases.
@@ -1919,10 +1911,17 @@ void ONScripter::executeLabel() {
 				readToken();
 		}
 
+		fprintf(stderr, "[DEBUG] executeLabel: inner loop done, about to lookupLabelNext, label=%s\n",
+		        current_label_info->name ? current_label_info->name : "(null)");
+		fflush(stderr);
 		current_label_info = script_h.lookupLabelNext(current_label_info->name);
 		current_line       = 0;
 		last_token_line    = -1;
 
+		fprintf(stderr, "[DEBUG] executeLabel: lookupLabelNext returned label=%s, start_address=%p\n",
+		        current_label_info->name ? current_label_info->name : "(null)",
+		        (void*)current_label_info->start_address);
+		fflush(stderr);
 		if (current_label_info->start_address != nullptr) {
 			if (!tryEndSuperSkip(false))
 				script_h.setCurrent(current_label_info->label_header);

@@ -2492,25 +2492,30 @@ int ONScripter::getcselnumCommand() {
 }
 
 int ONScripter::gameCommand() {
+	fprintf(stderr, "[DEBUG] gameCommand: entering, switching to NORMAL_MODE\n");
+	fflush(stderr);
 	int i;
 	current_mode = NORMAL_MODE;
 	effectspeed  = EFFECTSPEED_NORMAL;
 
-	/* ---------------------------------------- */
-	/* Load default cursor */
 	loadCursor(CURSOR_WAIT_NO, DEFAULT_CURSOR_WAIT, 0, 0);
 	loadCursor(CURSOR_NEWPAGE_NO, DEFAULT_CURSOR_NEWPAGE, 0, 0);
 
 	clearCurrentPage();
 
-	/* ---------------------------------------- */
-	/* Initialize local variables */
 	for (i = 0; i < script_h.global_variable_border; i++)
 		script_h.getVariableData(i).reset(false);
 
+	fprintf(stderr, "[DEBUG] gameCommand: about to setCurrentLabel(\"start\")\n");
+	fflush(stderr);
 	setCurrentLabel("start");
+	fprintf(stderr, "[DEBUG] gameCommand: setCurrentLabel done, label=%s, line=%d\n",
+	        current_label_info->name ? current_label_info->name : "(null)", current_line);
+	fflush(stderr);
 	saveSaveFile(-1);
 
+	fprintf(stderr, "[DEBUG] gameCommand: done, returning RET_CONTINUE\n");
+	fflush(stderr);
 	return RET_CONTINUE;
 }
 
