@@ -375,13 +375,6 @@ void ONScripter::waitEvent(int count, bool nopPreferred) {
 			if (cursor)
 				SDL_SetCursor(nullptr);
 			if (screenChanged && !window.getFullscreenFix() && should_flip) {
-#ifdef __EMSCRIPTEN__
-				static int flipCount = 0;
-				if (flipCount < 5) {
-					fprintf(stderr, "GPU_Flip #%d (screen_target=%p)\n", flipCount, (void*)screen_target);
-				}
-				flipCount++;
-#endif
 				GPU_Flip(screen_target);
 				screenChanged = false;
 				gpu.clearWholeTarget(screen_target);
@@ -389,26 +382,9 @@ void ONScripter::waitEvent(int count, bool nopPreferred) {
 				emscripten_sleep(0);
 #endif
 			} else {
-#ifdef __EMSCRIPTEN__
-				static int noFlipCount = 0;
-				if (noFlipCount < 3) {
-					fprintf(stderr, "waitEvent: no flip (screenChanged=%d, fullscreenFix=%d, should_flip=%d)\n",
-						screenChanged, window.getFullscreenFix(), should_flip);
-				}
-				noFlipCount++;
-#endif
-				// We didn't update, assume screenChanged to be false
 				screenChanged = false;
 			}
 		} else {
-#ifdef __EMSCRIPTEN__
-			static int skipCount = 0;
-			if (skipCount < 3) {
-				fprintf(stderr, "waitEvent: rendering skipped (allow=%d, sskip=%d, deferred=%d)\n",
-					allow_rendering, (skip_mode & SKIP_SUPERSKIP) ? 1 : 0, deferredLoadingEnabled ? 1 : 0);
-			}
-			skipCount++;
-#endif
 		}
 
 #ifndef DROID
@@ -1459,20 +1435,6 @@ void ONScripter::constantRefresh() {
 			constant_refresh_mode |= (REFRESH_TEXT_MODE | REFRESH_WINDOW_MODE);
 		flush(constant_refresh_mode | CONSTANT_REFRESH_MODE | REFRESH_BEFORESCENE_MODE, scene_rect, hud_rect, true, false);
 	} else {
-#ifdef __EMSCRIPTEN__
-		{
-			static int crDiag = 0;
-			if (crDiag < 10) {
-				fprintf(stderr, "constantRefresh #%d: cr_mode=0x%x before_hud_empty=%d before_scene_empty=%d before_hud_bb=(%.0f,%.0f,%.0f,%.0f) hud_rect=%p scene_rect=%p\n",
-					crDiag, constant_refresh_mode,
-					before_dirty_rect_hud.isEmpty(), before_dirty_rect_scene.isEmpty(),
-					before_dirty_rect_hud.bounding_box_script.x, before_dirty_rect_hud.bounding_box_script.y,
-					before_dirty_rect_hud.bounding_box_script.w, before_dirty_rect_hud.bounding_box_script.h,
-					(void*)hud_rect, (void*)scene_rect);
-				crDiag++;
-			}
-		}
-#endif
 		flush(constant_refresh_mode | CONSTANT_REFRESH_MODE | REFRESH_BEFORESCENE_MODE, scene_rect, hud_rect, true, false);
 	}
 

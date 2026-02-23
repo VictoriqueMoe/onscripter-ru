@@ -1752,20 +1752,6 @@ int ONScripter::lspCommand() {
 
 	setupAnimationInfo(&sprite_info[no], nullptr);
 
-#ifdef __EMSCRIPTEN__
-	{
-		static int lspDiag = 0;
-		if (lspDiag < 20) {
-			fprintf(stderr, "lsp #%d: sprite=%d visible=%d gpu_image=%p stale=%d pos=(%.0f,%.0f,%.0f,%.0f) trans_mode=%d\n",
-				lspDiag, no, sprite_info[no].visible ? 1 : 0,
-				(void*)sprite_info[no].gpu_image, sprite_info[no].stale_image ? 1 : 0,
-				sprite_info[no].pos.x, sprite_info[no].pos.y, sprite_info[no].pos.w, sprite_info[no].pos.h,
-				sprite_info[no].trans_mode);
-			lspDiag++;
-		}
-	}
-#endif
-
 	if (is_reuseable) {
 		//only save the index of reuseable sprites
 		last_loaded_sprite_ind                     = (1 + last_loaded_sprite_ind) % SPRITE_NUM_LAST_LOADS;
@@ -2507,23 +2493,14 @@ int ONScripter::getcselnumCommand() {
 
 int ONScripter::gameCommand() {
 	int i;
-#ifdef __EMSCRIPTEN__
-	fprintf(stderr, "gameCommand: entering, current_mode=%d\n", current_mode);
-#endif
 	current_mode = NORMAL_MODE;
 	effectspeed  = EFFECTSPEED_NORMAL;
 
 	/* ---------------------------------------- */
 	/* Load default cursor */
-#ifdef __EMSCRIPTEN__
-	fprintf(stderr, "gameCommand: loading cursors\n");
-#endif
 	loadCursor(CURSOR_WAIT_NO, DEFAULT_CURSOR_WAIT, 0, 0);
 	loadCursor(CURSOR_NEWPAGE_NO, DEFAULT_CURSOR_NEWPAGE, 0, 0);
 
-#ifdef __EMSCRIPTEN__
-	fprintf(stderr, "gameCommand: clearCurrentPage\n");
-#endif
 	clearCurrentPage();
 
 	/* ---------------------------------------- */
@@ -2531,18 +2508,9 @@ int ONScripter::gameCommand() {
 	for (i = 0; i < script_h.global_variable_border; i++)
 		script_h.getVariableData(i).reset(false);
 
-#ifdef __EMSCRIPTEN__
-	fprintf(stderr, "gameCommand: setCurrentLabel start\n");
-#endif
 	setCurrentLabel("start");
-#ifdef __EMSCRIPTEN__
-	fprintf(stderr, "gameCommand: saveSaveFile\n");
-#endif
 	saveSaveFile(-1);
 
-#ifdef __EMSCRIPTEN__
-	fprintf(stderr, "gameCommand: returning RET_CONTINUE, current_mode=%d\n", current_mode);
-#endif
 	return RET_CONTINUE;
 }
 
@@ -3331,10 +3299,6 @@ int ONScripter::btnwaitCommand() {
 		}
 		refreshButtonHoverState();
 		commitVisualState();
-#ifdef __EMSCRIPTEN__
-		fprintf(stderr, "btnwait: after commitVisualState, before_hud_empty=%d dirty_hud_empty=%d refreshMode=0x%x\n",
-			before_dirty_rect_hud.isEmpty(), dirty_rect_hud.isEmpty(), refreshMode());
-#endif
 		flush(refreshMode()); //don't wait for CR here, it resets our event_mode and breaks automode by setting current_button_state earlier
 		btnasync_draw_required = false;
 	}

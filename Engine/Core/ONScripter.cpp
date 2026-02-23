@@ -1453,16 +1453,6 @@ void ONScripter::flush(int refresh_mode, GPU_Rect *scene_rect, GPU_Rect *hud_rec
 		return; // Ignore this flush. Do not rebuild the scene or erase any dirty rects.
 	}
 
-#ifdef __EMSCRIPTEN__
-	static int flushDiag = 0;
-	if (flushDiag < 10) {
-		fprintf(stderr, "flush: mode=0x%x direct=%d pre_screen=%d before_scene_empty=%d before_hud_empty=%d scene_empty=%d hud_empty=%d\n",
-			refresh_mode, direct_flag, pre_screen_render,
-			before_dirty_rect_scene.isEmpty(), before_dirty_rect_hud.isEmpty(),
-			dirty_rect_scene.isEmpty(), dirty_rect_hud.isEmpty());
-		flushDiag++;
-	}
-#endif
 
 	if (direct_flag || pre_screen_render || onionAlphaCooldown || onionAlphaFactor) {
 		GPU_Rect full_rect = full_script_clip;
@@ -1870,31 +1860,6 @@ void ONScripter::executeLabel() {
 			}
 
 			int ret{RET_NO_READ};
-#ifdef __EMSCRIPTEN__
-			static int execCount = 0;
-			static int lastMode = -1;
-			static bool postGame = false;
-			execCount++;
-			if (current_mode != lastMode) {
-				fprintf(stderr, "=== MODE CHANGE: %d -> %d at execCount=%d label=%s line=%d ===\n",
-					lastMode, current_mode, execCount,
-					current_label_info ? current_label_info->name : "null", current_line);
-				lastMode = current_mode;
-				if (current_mode == NORMAL_MODE) {
-					postGame = true;
-				}
-			}
-			if (postGame && execCount < 17000) {
-				auto st = script_h.getCurrent();
-				auto firstRN0 = strpbrk(st, "\r\n");
-				int eol = firstRN0 ? static_cast<int>(firstRN0 - st) : 40;
-				if (eol > 120) {
-					eol = 120;
-				}
-				fprintf(stderr, "X[%s:%d m=%d] #%d cmd=%.*s\n",
-					current_label_info ? current_label_info->name : "?", current_line, current_mode, execCount, eol, st);
-			}
-#endif
 			if (event_callback_label && eventCallbackRequired && !inVariableQueueSubroutine && !callStackHasUninterruptible) {
 				gosubReal(event_callback_label, script_h.getCurrent());
 				eventCallbackRequired = false;
@@ -1909,25 +1874,8 @@ void ONScripter::executeLabel() {
 				if (ret == RET_NOMATCH)
 					ret = this->parseLine();
 				commandExecutionTime += SDL_GetPerformanceCounter() - start;
-
-#ifdef __EMSCRIPTEN__
-				if (postGame && execCount < 17000) {
-					fprintf(stderr, "  -> ret=0x%x mode=%d label=%s line=%d\n",
-						ret, current_mode,
-						current_label_info ? current_label_info->name : "null", current_line);
-				}
-#endif
 			} else {
 #ifdef __EMSCRIPTEN__
-				{
-					static int notPermittedCount = 0;
-					if (notPermittedCount < 5) {
-						fprintf(stderr, "  -> scriptExec NOT permitted: event_cb=%p ecr=%d dlg=%d\n",
-							(void*)event_callback_label, eventCallbackRequired ? 1 : 0,
-							dlgCtrl.wantsControl() ? 1 : 0);
-						notPermittedCount++;
-					}
-				}
 				event_mode = IDLE_EVENT_MODE;
 				waitEvent(0);
 #endif
@@ -1996,42 +1944,17 @@ bool ONScripter::scriptExecutionPermitted() {
 
 	if (dlgCtrl.loanExecutionActive || !dlgCtrl.executingDialogueInlineCommand) {
 		if (dlgReady && !dlgCtrl.continueScriptExecution) {
-#ifdef __EMSCRIPTEN__
-			static int sepBlock1 = 0;
-			if (sepBlock1 < 3) {
-				fprintf(stderr, "scriptExecBlocked: reason=1 dlgReady=%d contScript=%d loan=%d execInline=%d\n",
-					dlgReady, dlgCtrl.continueScriptExecution ? 1 : 0,
-					dlgCtrl.loanExecutionActive ? 1 : 0, dlgCtrl.executingDialogueInlineCommand ? 1 : 0);
-				sepBlock1++;
-			}
-#endif
 			return false;
 		}
 
 		for (auto &pair : dlgCtrl.suspendScriptPasses) {
 			if (dlgReady && pair.second <= -1) {
-#ifdef __EMSCRIPTEN__
-				static int sepBlock2 = 0;
-				if (sepBlock2 < 3) {
-					fprintf(stderr, "scriptExecBlocked: reason=2 suspendPass key=%d val=%d\n",
-						pair.first, pair.second);
-					sepBlock2++;
-				}
-#endif
 				return false;
 			}
 		}
 
 		for (const auto &a : getConstantRefreshActions()) {
 			if (a->suspendsMainScript()) {
-#ifdef __EMSCRIPTEN__
-				static int sepBlock3 = 0;
-				if (sepBlock3 < 3) {
-					fprintf(stderr, "scriptExecBlocked: reason=3 CRAction suspends script, expired=%d terminated=%d\n",
-						a->expired() ? 1 : 0, a->terminated ? 1 : 0);
-					sepBlock3++;
-				}
-#endif
 				return false;
 			}
 		}

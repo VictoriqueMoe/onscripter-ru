@@ -1913,6 +1913,13 @@ int ONScripter::operateConfigCommand() {
 
 		std::string propertyName(translate(script_h.readStr()));
 
+#ifdef __EMSCRIPTEN__
+		if (propertyName == "verify") {
+			script_h.setStr(&script_h.getVariableData(script_h.pushed_variable.var_no).str, "none");
+			return RET_CONTINUE;
+		}
+#endif
+
 		auto it = map.find(propertyName);
 		if (it != map.end())
 			script_h.setStr(&script_h.getVariableData(script_h.pushed_variable.var_no).str, it->second.c_str());

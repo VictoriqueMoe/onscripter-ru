@@ -1493,21 +1493,6 @@ void ONScripter::commitVisualState() {
 	blur_mode[BeforeScene]     = blur_mode[AfterScene];
 
 	// We committed, so any changes made to the after scene must now be applied to the normal (before) scene
-#ifdef __EMSCRIPTEN__
-	{
-		static int commitDiag = 0;
-		if (commitDiag < 10) {
-			fprintf(stderr, "commitVisualState #%d: dirty_hud_empty=%d dirty_scene_empty=%d hud_bb=(%.0f,%.0f,%.0f,%.0f) scene_bb=(%.0f,%.0f,%.0f,%.0f)\n",
-				commitDiag,
-				dirty_rect_hud.isEmpty(), dirty_rect_scene.isEmpty(),
-				dirty_rect_hud.bounding_box_script.x, dirty_rect_hud.bounding_box_script.y,
-				dirty_rect_hud.bounding_box_script.w, dirty_rect_hud.bounding_box_script.h,
-				dirty_rect_scene.bounding_box_script.x, dirty_rect_scene.bounding_box_script.y,
-				dirty_rect_scene.bounding_box_script.w, dirty_rect_scene.bounding_box_script.h);
-			commitDiag++;
-		}
-	}
-#endif
 	before_dirty_rect_hud.add(dirty_rect_hud.bounding_box_script);
 	before_dirty_rect_scene.add(dirty_rect_scene.bounding_box_script);
 	dirty_rect_hud.clear();
