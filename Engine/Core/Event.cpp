@@ -1454,6 +1454,20 @@ void ONScripter::constantRefresh() {
 			constant_refresh_mode |= (REFRESH_TEXT_MODE | REFRESH_WINDOW_MODE);
 		flush(constant_refresh_mode | CONSTANT_REFRESH_MODE | REFRESH_BEFORESCENE_MODE, scene_rect, hud_rect, true, false);
 	} else {
+#ifdef __EMSCRIPTEN__
+		{
+			static int crDiag = 0;
+			if (crDiag < 10) {
+				fprintf(stderr, "constantRefresh #%d: cr_mode=0x%x before_hud_empty=%d before_scene_empty=%d before_hud_bb=(%.0f,%.0f,%.0f,%.0f) hud_rect=%p scene_rect=%p\n",
+					crDiag, constant_refresh_mode,
+					before_dirty_rect_hud.isEmpty(), before_dirty_rect_scene.isEmpty(),
+					before_dirty_rect_hud.bounding_box_script.x, before_dirty_rect_hud.bounding_box_script.y,
+					before_dirty_rect_hud.bounding_box_script.w, before_dirty_rect_hud.bounding_box_script.h,
+					(void*)hud_rect, (void*)scene_rect);
+				crDiag++;
+			}
+		}
+#endif
 		flush(constant_refresh_mode | CONSTANT_REFRESH_MODE | REFRESH_BEFORESCENE_MODE, scene_rect, hud_rect, true, false);
 	}
 
