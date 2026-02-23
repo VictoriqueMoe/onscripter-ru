@@ -1919,11 +1919,17 @@ void ONScripter::executeLabel() {
 #endif
 			} else {
 #ifdef __EMSCRIPTEN__
-				if (postGame && execCount < 17000) {
-					fprintf(stderr, "  -> scriptExec NOT permitted: event_cb=%p ecr=%d dlg=%d\n",
-						(void*)event_callback_label, eventCallbackRequired ? 1 : 0,
-						dlgCtrl.wantsControl() ? 1 : 0);
+				{
+					static int notPermittedCount = 0;
+					if (notPermittedCount < 5) {
+						fprintf(stderr, "  -> scriptExec NOT permitted: event_cb=%p ecr=%d dlg=%d\n",
+							(void*)event_callback_label, eventCallbackRequired ? 1 : 0,
+							dlgCtrl.wantsControl() ? 1 : 0);
+						notPermittedCount++;
+					}
 				}
+				event_mode = IDLE_EVENT_MODE;
+				waitEvent(0);
 #endif
 			}
 
@@ -1988,32 +1994,46 @@ bool ONScripter::scriptExecutionPermitted() {
 
 	bool dlgReady = dlgCtrl.dialogueProcessingState.readyToRun;
 
-	/* Dialogues work very differently to how you might expect.
-	 * The dialogues and the main script proceed in "parallel" in an interleaved fashion.
-	 * "Loan execution" returns control from inline dialogue commands back to the main script.
-	 * This can be used to suspend inline dialogue commands from executing (e.g. to implement wait commands)
-	 * in a way that allows the main script to continue, even while the dialogue is only halfway executed.
-	 * The main script can also issue d_continue to pass control back to the dialogue again. That will cause
-	 * the dialogue to wantsControl() and endLoanExecution(), returning execution to the inline dialogue commands.
-	 *
-	 * To repeat, loaning execution to main script prevents the execution of inline dialogue commands.
-	 *
-	 * We prevent script from executing regular commands (not ones that originate from dialogue-inline) if:*/
 	if (dlgCtrl.loanExecutionActive || !dlgCtrl.executingDialogueInlineCommand) {
-		// 1: we are executing d (and not d2). This prevents commands following a non-piped dialogue from being executed -- everything happens before moving on to the next line.
-		if (dlgReady && !dlgCtrl.continueScriptExecution)
+		if (dlgReady && !dlgCtrl.continueScriptExecution) {
+#ifdef __EMSCRIPTEN__
+			static int sepBlock1 = 0;
+			if (sepBlock1 < 3) {
+				fprintf(stderr, "scriptExecBlocked: reason=1 dlgReady=%d contScript=%d loan=%d execInline=%d\n",
+					dlgReady, dlgCtrl.continueScriptExecution ? 1 : 0,
+					dlgCtrl.loanExecutionActive ? 1 : 0, dlgCtrl.executingDialogueInlineCommand ? 1 : 0);
+				sepBlock1++;
+			}
+#endif
 			return false;
-
-		// 2: the script is suspended by a wait_on_d in the script (thooooough... this could feasibly be an action as well...)
-		for (auto &pair : dlgCtrl.suspendScriptPasses) {
-			if (dlgReady && pair.second <= -1)
-				return false;
 		}
 
-		// 3: the script is suspended by a currently executing action
-		for (const auto &a : getConstantRefreshActions()) {
-			if (a->suspendsMainScript())
+		for (auto &pair : dlgCtrl.suspendScriptPasses) {
+			if (dlgReady && pair.second <= -1) {
+#ifdef __EMSCRIPTEN__
+				static int sepBlock2 = 0;
+				if (sepBlock2 < 3) {
+					fprintf(stderr, "scriptExecBlocked: reason=2 suspendPass key=%s val=%d\n",
+						pair.first.c_str(), pair.second);
+					sepBlock2++;
+				}
+#endif
 				return false;
+			}
+		}
+
+		for (const auto &a : getConstantRefreshActions()) {
+			if (a->suspendsMainScript()) {
+#ifdef __EMSCRIPTEN__
+				static int sepBlock3 = 0;
+				if (sepBlock3 < 3) {
+					fprintf(stderr, "scriptExecBlocked: reason=3 CRAction suspends script, expired=%d terminated=%d\n",
+						a->expired() ? 1 : 0, a->terminated ? 1 : 0);
+					sepBlock3++;
+				}
+#endif
+				return false;
+			}
 		}
 	}
 
