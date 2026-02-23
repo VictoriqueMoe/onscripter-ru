@@ -986,8 +986,12 @@ int ONScripter::ownInit() {
 	// Prepare basic window support.
 	window.init();
 
-	if (open())
+	fprintf(stderr, "[DEBUG] ownInit: calling open()\n");
+	if (open()) {
+		fprintf(stderr, "[DEBUG] ownInit: open() FAILED\n");
 		return -1;
+	}
+	fprintf(stderr, "[DEBUG] ownInit: open() succeeded\n");
 
 	if (!script_h.save_path)
 		lookupSavePath();
@@ -1113,9 +1117,12 @@ int ONScripter::ownInit() {
 	internal_timer = SDL_GetTicks();
 
 	loadEnvData();
+	fprintf(stderr, "[DEBUG] ownInit: loadEnvData done, calling defineresetCommand\n");
 
 	defineresetCommand();
+	fprintf(stderr, "[DEBUG] ownInit: defineresetCommand done, calling readToken\n");
 	readToken();
+	fprintf(stderr, "[DEBUG] ownInit: readToken done, init complete\n");
 
 	return 0;
 }

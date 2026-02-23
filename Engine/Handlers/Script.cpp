@@ -1217,6 +1217,8 @@ int ScriptHandler::readScript() {
 	script_buffer_length = preprocessScript(script_data.data(), script_data.size());
 	script_buffer        = copyarr(reinterpret_cast<char *>(script_data.data()), script_buffer_length + 1);
 	game_hash            = static_cast<uint32_t>(script_buffer_length); // Reasonable "hash" value
+	fprintf(stderr, "[DEBUG] readScript: script_buffer_length=%zu, num_of_labels=%u, game_hash=%u\n",
+	        script_buffer_length, num_of_labels, game_hash);
 
 	//sendToLog(LogLevel::Info,"num_of_labels %d\n",num_of_labels);
 
@@ -1363,6 +1365,7 @@ int ScriptHandler::labelScript() {
 }
 
 LabelInfo *ScriptHandler::lookupLabel(const char *label) {
+	fprintf(stderr, "[DEBUG] lookupLabel called with label=%s\n", label ? label : "(nullptr)");
 	int i = findLabel(label);
 
 	if (i == -1) {
