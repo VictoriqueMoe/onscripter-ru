@@ -85,11 +85,13 @@ void AsyncController::queue(std::unique_ptr<AsyncInstruction> inst) {
 	instQueue->q.push_back(std::move(inst));
 	if (!instQueue->quitOnEmpty)
 		SDL_SemPost(instQueue->instructionsWaiting);
+#ifndef __EMSCRIPTEN__
 	if (!instQueue->thread) {
 		instQueue->thread = SDL_CreateThread(instQueue->threadLoopFunction,
 		                                     instQueue->name,
 		                                     instQueue->q.back()->ac);
 	}
+#endif
 	SDL_AtomicUnlock(&instQueue->lock);
 }
 
@@ -420,7 +422,9 @@ AsyncInstructionQueue *EventQueueInstruction::getInstructionQueue() {
 }
 
 void AsyncController::startEventQueue() {
+#ifndef __EMSCRIPTEN__
 	queue(std::make_unique<EventQueueInstruction>(this));
+#endif
 }
 
 int eventQueueThreadLoop(void *arg) {

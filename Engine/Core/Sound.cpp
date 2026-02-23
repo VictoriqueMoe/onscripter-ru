@@ -176,6 +176,9 @@ int ONScripter::playSoundThreaded(const char *filename, int format, bool loop_fl
 		return cacheRet;
 	}
 
+#ifdef __EMSCRIPTEN__
+	auto r = static_cast<uintptr_t>(playSound(filename, format, loop_flag, channel));
+#else
 	// set up the normal playSound call
 	async.playSound(filename, format, loop_flag, channel);
 
@@ -194,6 +197,7 @@ int ONScripter::playSoundThreaded(const char *filename, int format, bool loop_fl
 	auto r = reinterpret_cast<uintptr_t>(async.playSoundQueue.results.front());
 	async.playSoundQueue.results.pop_front();
 	SDL_AtomicUnlock(&async.playSoundQueue.resultsLock);
+#endif
 
 	//enable lipsEvent
 	skipLipsAction = false;

@@ -262,6 +262,11 @@ void ONScripter::setupAnimationInfo(AnimationInfo *anim, Fontinfo *info) {
 		anim->calculateImage(anim->pos.w, anim->pos.h);
 		//anim->fill(0, 0, 0, 0);
 	} else {
+#ifdef __EMSCRIPTEN__
+		buildAIImage(anim);
+		buildGPUImage(*anim);
+		freeRedundantSurfaces(*anim);
+#else
 		async.loadImage(anim);
 		// Wait in loop (like crEffect) until we are loaded
 		// detect events from during image loading & resizing, but without any image refresh (esp. if trapping)
@@ -274,6 +279,7 @@ void ONScripter::setupAnimationInfo(AnimationInfo *anim, Fontinfo *info) {
 		event_mode = old_event_mode;
 		buildGPUImage(*anim);
 		freeRedundantSurfaces(*anim);
+#endif
 	}
 	anim->stale_image     = false;
 	anim->exists          = true;
