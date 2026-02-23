@@ -27,20 +27,10 @@
 #include <shlobj.h>
 #elif defined(__EMSCRIPTEN__)
 #include <emscripten.h>
+#include <sys/stat.h>
 
-EM_ASYNC_JS(int, emscripten_fetch_to_vfs, (const char *c_path), {
+EM_ASYNC_JS(int, emscripten_fetch_to_vfs_async, (const char *c_path), {
 	var path = UTF8ToString(c_path);
-	if (!window.gameFileSet || !window.gameFileSet.has(path)) {
-		return 0;
-	}
-	try {
-		var stat = FS.stat(path);
-		if (stat.size > 0) {
-			return 0;
-		}
-	} catch (e) {
-		return 0;
-	}
 	try {
 		var response = await fetch(path);
 		if (!response.ok) {
@@ -48,12 +38,32 @@ EM_ASYNC_JS(int, emscripten_fetch_to_vfs, (const char *c_path), {
 		}
 		var data = new Uint8Array(await response.arrayBuffer());
 		FS.writeFile(path, data);
-		window.gameFileSet.delete(path);
+		if (window.gameFileSet) {
+			window.gameFileSet.delete(path);
+		}
 		return 0;
 	} catch (e) {
 		return -1;
 	}
 });
+
+static bool emscripten_needs_fetch(const char *path) {
+	struct stat st;
+	if (stat(path, &st) != 0) {
+		return false;
+	}
+	if (st.st_size > 0) {
+		return false;
+	}
+	return true;
+}
+
+static int emscripten_fetch_to_vfs(const char *path) {
+	if (!emscripten_needs_fetch(path)) {
+		return 0;
+	}
+	return emscripten_fetch_to_vfs_async(path);
+}
 
 #elif defined(LINUX)
 #include <sys/wait.h>
