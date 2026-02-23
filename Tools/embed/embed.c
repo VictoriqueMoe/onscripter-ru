@@ -13,7 +13,7 @@
 #include <ctype.h>
 #include <stdbool.h>
 
-#define GLES_IFDEF "#if defined(IOS) || defined(DROID) || defined(WIN32)"
+#define GLES_IFDEF "#if defined(IOS) || defined(DROID) || defined(WIN32) || defined(__EMSCRIPTEN__)"
 
 enum comment_type {
 	CStyleComment,
