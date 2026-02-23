@@ -1874,7 +1874,6 @@ void ONScripter::executeLabel() {
 			{
 				static int execCount = 0;
 				static int lastMode = -1;
-				static int normalLog = 0;
 				execCount++;
 				if (current_mode != lastMode) {
 					fprintf(stderr, "=== MODE CHANGE: %d -> %d at execCount=%d label=%s line=%d ===\n",
@@ -1882,26 +1881,15 @@ void ONScripter::executeLabel() {
 						current_label_info ? current_label_info->name : "null", current_line);
 					lastMode = current_mode;
 				}
-				if (current_mode == NORMAL_MODE && normalLog < 200) {
+				if (execCount > 15500 && execCount < 15700) {
 					auto st = script_h.getCurrent();
 					auto firstRN0 = strpbrk(st, "\r\n");
 					int eol = firstRN0 ? static_cast<int>(firstRN0 - st) : 40;
 					if (eol > 120) {
 						eol = 120;
 					}
-					bool sep = scriptExecutionPermitted();
-					fprintf(stderr, "N[%s:%d] #%d sep=%d cmd=%.*s\n",
-						current_label_info ? current_label_info->name : "?", current_line, execCount, sep ? 1 : 0, eol, st);
-					normalLog++;
-				} else if (current_mode == DEFINE_MODE && (execCount % 5000 == 0 || (execCount > 14000 && execCount % 100 == 0))) {
-					auto st = script_h.getCurrent();
-					auto firstRN0 = strpbrk(st, "\r\n");
-					int eol = firstRN0 ? static_cast<int>(firstRN0 - st) : 40;
-					if (eol > 100) {
-						eol = 100;
-					}
-					fprintf(stderr, "D[%s:%d] #%d cmd=%.*s\n",
-						current_label_info ? current_label_info->name : "?", current_line, execCount, eol, st);
+					fprintf(stderr, "X[%s:%d m=%d] #%d cmd=%.*s\n",
+						current_label_info ? current_label_info->name : "?", current_line, current_mode, execCount, eol, st);
 				}
 			}
 #endif
