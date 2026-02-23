@@ -562,48 +562,44 @@ const GlyphValues *ONScripter::renderUnicodeGlyph(Font *font, GlyphParams *key) 
 
 	GlyphParams k = *key;
 
-	GlyphValues *glyph;
-	try {
-		glyph = glyphCache.get(k);
-	} catch (int) {
-		// No coloured glyph found... we'll have to get an uncolored one and color it.
-		// First let's see if there's an uncolored one already in the cache.
-		GlyphParams uncolored = k;
-		uncolored.is_colored  = false;
-		GlyphValues *uncolored_glyph;
-		try {
-			uncolored_glyph = glyphCache.get(uncolored);
-		} catch (int) {
-			// No uncoloured one in the cache either. Looks like we gotta render it from FT. (Then put it in the cache for later use.)
-			uncolored_glyph = font->renderGlyph(&uncolored, fcol, bcol);
-			if (uncolored_glyph->buildGPUImages(use_text_atlas ? &glyphAtlas : nullptr)) {
-				glyphCache.set(uncolored, uncolored_glyph);
-			} else {
-				delete uncolored_glyph;
-				resetGlyphCache();
-				return renderUnicodeGlyph(font, key);
-			}
-		}
-		// OK, so we have the uncolored glyph one way or another... now let's paint it
-		// (but not if we are asked to paint it black)
-		bool black_glyph  = k.glyph_color.r == 0 && k.glyph_color.g == 0 && k.glyph_color.b == 0;
-		bool black_border = k.border_color.r == 0 && k.border_color.g == 0 && k.border_color.b == 0;
-		if (black_glyph && black_border) {
-			return uncolored_glyph;
-		}
-		bool should_set = true;
-		glyph           = new GlyphValues(*uncolored_glyph); // so we don't ruin the uncolored one in the cache (prevents trying to recolor an already colored glyph)
-		if (!black_glyph)
-			should_set = colorGlyph(key, glyph, &k.glyph_color, false, use_text_atlas ? &glyphAtlas : nullptr); // Color the glyph
-		if (!black_border && should_set)
-			should_set = colorGlyph(key, glyph, &k.border_color, true, use_text_atlas ? &glyphAtlas : nullptr); // Color the border
-		if (should_set) {
-			glyphCache.set(k, glyph); // Store the colored glyph in the cache so we don't need to color it repeatedly.
+	GlyphValues *glyph = glyphCache.get(k);
+	if (glyph) {
+		return glyph;
+	}
+
+	GlyphParams uncolored = k;
+	uncolored.is_colored  = false;
+	GlyphValues *uncolored_glyph = glyphCache.get(uncolored);
+	if (!uncolored_glyph) {
+		uncolored_glyph = font->renderGlyph(&uncolored, fcol, bcol);
+		if (uncolored_glyph->buildGPUImages(use_text_atlas ? &glyphAtlas : nullptr)) {
+			glyphCache.set(uncolored, uncolored_glyph);
 		} else {
-			delete glyph;
+			delete uncolored_glyph;
 			resetGlyphCache();
 			return renderUnicodeGlyph(font, key);
 		}
+	}
+
+	bool black_glyph  = k.glyph_color.r == 0 && k.glyph_color.g == 0 && k.glyph_color.b == 0;
+	bool black_border = k.border_color.r == 0 && k.border_color.g == 0 && k.border_color.b == 0;
+	if (black_glyph && black_border) {
+		return uncolored_glyph;
+	}
+	bool should_set = true;
+	glyph           = new GlyphValues(*uncolored_glyph);
+	if (!black_glyph) {
+		should_set = colorGlyph(key, glyph, &k.glyph_color, false, use_text_atlas ? &glyphAtlas : nullptr);
+	}
+	if (!black_border && should_set) {
+		should_set = colorGlyph(key, glyph, &k.border_color, true, use_text_atlas ? &glyphAtlas : nullptr);
+	}
+	if (should_set) {
+		glyphCache.set(k, glyph);
+	} else {
+		delete glyph;
+		resetGlyphCache();
+		return renderUnicodeGlyph(font, key);
 	}
 
 	return glyph;
@@ -611,10 +607,8 @@ const GlyphValues *ONScripter::renderUnicodeGlyph(Font *font, GlyphParams *key) 
 
 const GlyphValues *ONScripter::measureUnicodeGlyph(Font *font, GlyphParams *key) {
 	GlyphParams k = *key;
-	GlyphValues *glyph;
-	try {
-		glyph = glyphMeasureCache.get(k);
-	} catch (int) {
+	GlyphValues *glyph = glyphMeasureCache.get(k);
+	if (!glyph) {
 		glyph = font->measureGlyph(&k);
 		glyphMeasureCache.set(k, glyph);
 	}

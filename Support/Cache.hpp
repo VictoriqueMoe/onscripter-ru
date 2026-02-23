@@ -108,14 +108,7 @@ public:
 		elemCache.set(keyname, elem);
 	}
 	std::shared_ptr<SETELEM> get(KEY keyname) {
-		try {
-			auto wrapped = elemCache.get(keyname);
-			//sendToLog(LogLevel::Info, "(LRU) Found image cache entry %s\n", filename.c_str());
-			return wrapped;
-		} catch (int) {
-			//sendToLog(LogLevel::Info, "(LRU) Failed to find cache entry %s\n", filename.c_str());
-			return nullptr;
-		}
+		return elemCache.get(keyname);
 	}
 	void remove(const KEY &keyname) {
 		elemCache.remove(keyname);

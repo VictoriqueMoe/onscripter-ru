@@ -617,53 +617,47 @@ LabelInfo *ScriptHandler::getLabelByAddress(const char *address) {
 	}
 
 	static LRUCache<const char *, LabelInfo *, std::unordered_map> addressCache(100, false);
-	LabelInfo *label = nullptr;
-	try {
-		label = addressCache.get(address);
-		if (label)
-			return label;
-	} catch (int) {
-		uint32_t i;
-		for (i = 0; i < num_of_labels - 1; i++) {
-			if (label_info[i + 1].start_address > address) {
-				addressCache.set(address, &label_info[i]);
-				return &label_info[i];
-			}
-		}
-		addressCache.set(address, &label_info[i]);
-		return &label_info[i];
+	LabelInfo *label = addressCache.get(address);
+	if (label) {
+		return label;
 	}
-	return &label_info[num_of_labels];
+
+	uint32_t i;
+	for (i = 0; i < num_of_labels - 1; i++) {
+		if (label_info[i + 1].start_address > address) {
+			addressCache.set(address, &label_info[i]);
+			return &label_info[i];
+		}
+	}
+	addressCache.set(address, &label_info[i]);
+	return &label_info[i];
 }
 
 LabelInfo *ScriptHandler::getLabelByLine(int line) {
 	static LRUCache<int, LabelInfo *, std::unordered_map> lineCache(100, false);
-	LabelInfo *label = nullptr;
-	try {
-		label = lineCache.get(line);
-		if (label)
-			return label;
-	} catch (int) {
-		uint32_t i;
-		for (i = 0; i < num_of_labels - 1; i++) {
-			if (label_info[i + 1].start_line > line) {
-				lineCache.set(line, &label_info[i]);
-				return &label_info[i];
-			}
-		}
-		if (i == num_of_labels - 1) {
-			int num_lines = label_info[i].start_line + label_info[i].num_of_lines;
-			if (line >= num_lines) {
-				std::snprintf(errbuf, MAX_ERRBUF_LEN,
-				              "getLabelByLine: line %d outside script bounds (%d lines)",
-				              line, num_lines);
-				errorAndExit(errbuf, nullptr, "Address Error");
-			}
-		}
-		lineCache.set(line, &label_info[i]);
-		return &label_info[i];
+	LabelInfo *label = lineCache.get(line);
+	if (label) {
+		return label;
 	}
-	return &label_info[num_of_labels];
+
+	uint32_t i;
+	for (i = 0; i < num_of_labels - 1; i++) {
+		if (label_info[i + 1].start_line > line) {
+			lineCache.set(line, &label_info[i]);
+			return &label_info[i];
+		}
+	}
+	if (i == num_of_labels - 1) {
+		int num_lines = label_info[i].start_line + label_info[i].num_of_lines;
+		if (line >= num_lines) {
+			std::snprintf(errbuf, MAX_ERRBUF_LEN,
+			              "getLabelByLine: line %d outside script bounds (%d lines)",
+			              line, num_lines);
+			errorAndExit(errbuf, nullptr, "Address Error");
+		}
+	}
+	lineCache.set(line, &label_info[i]);
+	return &label_info[i];
 	/*	//sendToLog(LogLevel::Error, "Trying to find line with number %i ...\n", line);
 	LabelInfo *label = labelsMapByLine(line);
 	//sendToLog(LogLevel::Error, "label = %p.\n", label);
