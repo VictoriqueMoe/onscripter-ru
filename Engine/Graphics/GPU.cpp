@@ -260,10 +260,18 @@ void GPUController::createShader(const char *filename) {
 	GPU_ShaderEnum shaderType;
 	uint32_t shader;
 	SDL_RWops *shaderData;
-	shaderType = gpu.getShaderTypeByExtension(filename);
-	if (shaderType == GPU_ShaderEnum{}) {
-		return;
+	{
+		std::string ext(filename);
+		auto dot = ext.find_last_of('.');
+		if (dot == std::string::npos) {
+			return;
+		}
+		ext = ext.substr(dot + 1);
+		if (ext != "frag" && ext != "vert") {
+			return;
+		}
 	}
+	shaderType = gpu.getShaderTypeByExtension(filename);
 
 	sendToLog(LogLevel::Info, "Compiling shader: %s\n", filename);
 
@@ -324,7 +332,7 @@ GPU_ShaderEnum GPUController::getShaderTypeByExtension(const char *filename) {
 		return GPU_FRAGMENT_SHADER;
 	if (extension == "vert")
 		return GPU_VERTEX_SHADER;
-	return GPU_ShaderEnum{};
+	throw std::invalid_argument("Not a shader");
 }
 
 void GPUController::bindImageToSlot(GPU_Image *image, int slot_number) {
