@@ -1860,6 +1860,25 @@ void ONScripter::executeLabel() {
 			}
 
 			int ret{RET_NO_READ};
+#ifdef __EMSCRIPTEN__
+			{
+				static int execDiag = 0;
+				if (execDiag < 30) {
+					bool ecb = event_callback_label && eventCallbackRequired && !inVariableQueueSubroutine && !callStackHasUninterruptible;
+					bool dlg = dlgCtrl.wantsControl() && !callStackHasUninterruptible;
+					bool sep = scriptExecutionPermitted();
+					auto st = script_h.getCurrent();
+					auto firstRN0 = strpbrk(st, "\r\n");
+					int eol = firstRN0 ? static_cast<int>(firstRN0 - st) : 40;
+					if (eol > 80) {
+						eol = 80;
+					}
+					fprintf(stderr, "executeLabel #%d: ecb=%d dlg=%d sep=%d line=%d cmd=%.*s\n",
+						execDiag, ecb ? 1 : 0, dlg ? 1 : 0, sep ? 1 : 0, current_line, eol, st);
+					execDiag++;
+				}
+			}
+#endif
 			if (event_callback_label && eventCallbackRequired && !inVariableQueueSubroutine && !callStackHasUninterruptible) {
 				gosubReal(event_callback_label, script_h.getCurrent());
 				eventCallbackRequired = false;
@@ -1867,34 +1886,6 @@ void ONScripter::executeLabel() {
 			} else if (dlgCtrl.wantsControl() && !callStackHasUninterruptible) {
 				ret = dlgCtrl.processDialogueEvents();
 			} else if (scriptExecutionPermitted()) {
-
-				//static auto prevEnd = SDL_GetPerformanceCounter();
-				//auto start = SDL_GetPerformanceCounter();
-
-				// Very useful debugging code! :)
-				// Uncomment to use
-				/*{
-					std::ostringstream logStream;
-					logStream << "Since last command: " << (start-prevEnd);
-					if (script_h.debugCommandLog.size() > 300) script_h.debugCommandLog.pop_front();
-					script_h.debugCommandLog.push_back(logStream.str());
-				}
-				
-				{
-					auto st = script_h.getCurrent();
-					auto firstRN0 = strpbrk(st, "\r\n\0");
-					int eol = firstRN0 ? firstRN0 - st : 0;
-					std::string log;
-					log.insert(0, st, eol);
-					//if (script_h.getStringBuffer()) {
-					//	log += "(((";
-					//	log += script_h.getStringBuffer();
-					//	log += ")))";
-					//}
-					if (script_h.debugCommandLog.size() > 300) script_h.debugCommandLog.pop_front();
-					script_h.debugCommandLog.push_back(log);
-					log.clear();
-				}*/
 
 				// count script execution time
 				auto start = SDL_GetPerformanceCounter();
