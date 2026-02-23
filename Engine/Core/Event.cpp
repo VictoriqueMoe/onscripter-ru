@@ -364,6 +364,11 @@ void ONScripter::waitEvent(int count, bool nopPreferred) {
 				SDL_Delay(1);
 #endif
 			}
+#ifdef __EMSCRIPTEN__
+			else {
+				emscripten_sleep(0);
+			}
+#endif
 		}
 
 		if (allow_rendering && !(skip_mode & SKIP_SUPERSKIP) && !deferredLoadingEnabled) {
@@ -373,6 +378,9 @@ void ONScripter::waitEvent(int count, bool nopPreferred) {
 				GPU_Flip(screen_target);
 				screenChanged = false;
 				gpu.clearWholeTarget(screen_target);
+#ifdef __EMSCRIPTEN__
+				emscripten_sleep(0);
+#endif
 			} else {
 				// We didn't update, assume screenChanged to be false
 				screenChanged = false;
