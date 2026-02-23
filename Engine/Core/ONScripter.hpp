@@ -538,13 +538,29 @@ public:
 	int layermessageCommand();
 
 	void jumpToTilde(bool setGlobalFields) {
-		// FIXME: setGlobalFields=false appears to be an optimization, but it is broken.
-		// Easy to reproduce by putting jskip_s ~ before a *dXXXX label. The log will contain dialogue dups.
 		setGlobalFields = true;
 		const char *buf = script_h.getNext();
+		const char *start = buf;
+		fprintf(stderr, "[DEBUG] jumpToTilde: start=%p, first 40 bytes: ", (const void*)buf);
+		for (int i = 0; i < 40 && buf[i] != '\0'; i++) {
+			if (buf[i] >= 0x20 && buf[i] < 0x7f) {
+				fprintf(stderr, "%c", buf[i]);
+			} else {
+				fprintf(stderr, "\\x%02x", (unsigned char)buf[i]);
+			}
+		}
+		fprintf(stderr, "\n");
+		fflush(stderr);
 		while (*buf != '\0' && *buf != '~') buf++;
-		if (*buf == '~')
+		fprintf(stderr, "[DEBUG] jumpToTilde: scanned %ld bytes, found=%c(0x%02x)\n",
+		        (long)(buf - start), *buf ? *buf : '?', (unsigned char)*buf);
+		fflush(stderr);
+		if (*buf == '~') {
 			buf++;
+		} else {
+			fprintf(stderr, "[DEBUG] jumpToTilde: NO TILDE FOUND, hit end of script!\n");
+			fflush(stderr);
+		}
 		script_h.setCurrent(buf);
 		if (setGlobalFields) {
 			current_label_info = script_h.getLabelByAddress(buf);
