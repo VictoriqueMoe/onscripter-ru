@@ -207,20 +207,16 @@ void GPUController::createShadersFromResources() {
 		createShader(r->filename);
 	}
 	for (auto r = getResourceList(); r->buffer; ++r) {
-		try {
-			if (shaders.count(r->filename) > 0 && getShaderTypeByExtension(r->filename) == GPU_FRAGMENT_SHADER &&
-			    isStandaloneShader(reinterpret_cast<const char *>(r->buffer))) {
-				std::vector<uint32_t> linksWith = findAllLinkTargets(reinterpret_cast<const char *>(r->buffer), r->size);
-				if (linksWith.empty()) {
-					createProgramFromShaders(r->filename, r->filename, "defaultVertex.vert"); // Also make a default program that we can use, with the shader filename
-				} else {
-					linksWith.push_back(shaders.at("defaultVertex.vert"));
-					linksWith.push_back(shaders.at(r->filename));
-					createProgramFromShaders(r->filename, linksWith);
-				}
+		if (shaders.count(r->filename) > 0 && getShaderTypeByExtension(r->filename) == GPU_FRAGMENT_SHADER &&
+		    isStandaloneShader(reinterpret_cast<const char *>(r->buffer))) {
+			std::vector<uint32_t> linksWith = findAllLinkTargets(reinterpret_cast<const char *>(r->buffer), r->size);
+			if (linksWith.empty()) {
+				createProgramFromShaders(r->filename, r->filename, "defaultVertex.vert");
+			} else {
+				linksWith.push_back(shaders.at("defaultVertex.vert"));
+				linksWith.push_back(shaders.at(r->filename));
+				createProgramFromShaders(r->filename, linksWith);
 			}
-		} catch (std::invalid_argument &) {
-			continue; // Only link fragment shaders
 		}
 	}
 }
@@ -264,10 +260,9 @@ void GPUController::createShader(const char *filename) {
 	GPU_ShaderEnum shaderType;
 	uint32_t shader;
 	SDL_RWops *shaderData;
-	try {
-		shaderType = gpu.getShaderTypeByExtension(filename);
-	} catch (std::invalid_argument &) {
-		return; // we can't figure out what shader type it is, so we can't make the shader.
+	shaderType = gpu.getShaderTypeByExtension(filename);
+	if (shaderType == GPU_ShaderEnum{}) {
+		return;
 	}
 
 	sendToLog(LogLevel::Info, "Compiling shader: %s\n", filename);
@@ -329,7 +324,7 @@ GPU_ShaderEnum GPUController::getShaderTypeByExtension(const char *filename) {
 		return GPU_FRAGMENT_SHADER;
 	if (extension == "vert")
 		return GPU_VERTEX_SHADER;
-	throw std::invalid_argument("Not a shader");
+	return GPU_ShaderEnum{};
 }
 
 void GPUController::bindImageToSlot(GPU_Image *image, int slot_number) {
