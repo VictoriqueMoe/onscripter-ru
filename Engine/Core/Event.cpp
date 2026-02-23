@@ -452,6 +452,11 @@ void ONScripter::waitEvent(int count, bool nopPreferred) {
 		count -= (ticksNow - ticks);
 		ticks = ticksNow;
 		//sendToLog(LogLevel::Info,"  next iteration\n");
+#ifdef __EMSCRIPTEN__
+		if (!timerBreakout) {
+			emscripten_sleep(0);
+		}
+#endif
 	} while (count > 0 || !timerBreakout); // if we are told not to break out by timer, this is an infinite loop
 	//sendToLog(LogLevel::Info, "-----------------\n");
 	nested_calls--;
