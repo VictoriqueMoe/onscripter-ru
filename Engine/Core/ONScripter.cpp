@@ -2013,8 +2013,8 @@ bool ONScripter::scriptExecutionPermitted() {
 #ifdef __EMSCRIPTEN__
 				static int sepBlock2 = 0;
 				if (sepBlock2 < 3) {
-					fprintf(stderr, "scriptExecBlocked: reason=2 suspendPass key=%s val=%d\n",
-						pair.first.c_str(), pair.second);
+					fprintf(stderr, "scriptExecBlocked: reason=2 suspendPass key=%d val=%d\n",
+						pair.first, pair.second);
 					sepBlock2++;
 				}
 #endif
