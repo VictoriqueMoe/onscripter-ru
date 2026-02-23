@@ -1893,9 +1893,15 @@ void ONScripter::executeLabel() {
 					fprintf(stderr, "N[%s:%d] #%d sep=%d cmd=%.*s\n",
 						current_label_info ? current_label_info->name : "?", current_line, execCount, sep ? 1 : 0, eol, st);
 					normalLog++;
-				} else if (current_mode == DEFINE_MODE && execCount % 5000 == 0) {
-					fprintf(stderr, "D[%s:%d] #%d\n",
-						current_label_info ? current_label_info->name : "?", current_line, execCount);
+				} else if (current_mode == DEFINE_MODE && (execCount % 5000 == 0 || (execCount > 14000 && execCount % 100 == 0))) {
+					auto st = script_h.getCurrent();
+					auto firstRN0 = strpbrk(st, "\r\n");
+					int eol = firstRN0 ? static_cast<int>(firstRN0 - st) : 40;
+					if (eol > 100) {
+						eol = 100;
+					}
+					fprintf(stderr, "D[%s:%d] #%d cmd=%.*s\n",
+						current_label_info ? current_label_info->name : "?", current_line, execCount, eol, st);
 				}
 			}
 #endif
