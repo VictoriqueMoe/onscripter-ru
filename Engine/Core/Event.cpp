@@ -377,12 +377,18 @@ void ONScripter::waitEvent(int count, bool nopPreferred) {
 			if (screenChanged && !window.getFullscreenFix() && should_flip) {
 				GPU_Flip(screen_target);
 				screenChanged = false;
+#ifndef __EMSCRIPTEN__
 				gpu.clearWholeTarget(screen_target);
+#endif
 #ifdef __EMSCRIPTEN__
 				emscripten_sleep(0);
 #endif
 			} else {
 				screenChanged = false;
+#ifdef __EMSCRIPTEN__
+				GPU_Flip(screen_target);
+				emscripten_sleep(0);
+#endif
 			}
 		} else {
 		}
