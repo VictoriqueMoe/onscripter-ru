@@ -137,6 +137,9 @@ void ONScripter::flushEvent() {
 }
 
 void ONScripter::handleSDLEvents() {
+#ifdef __EMSCRIPTEN__
+	fetchEventsToQueue();
+#endif
 	updateEventQueue();
 
 	// Process some checks before returning from runEventLoop (at least automode/voicewait related)
