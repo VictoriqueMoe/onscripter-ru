@@ -204,6 +204,15 @@ int ONScripter::verifyFilesCommand() {
 	script_h.readVariable();
 	script_h.pushVariable();
 
+#ifdef __EMSCRIPTEN__
+	script_h.readFilePath();
+	script_h.setInt(&script_h.pushed_variable, 0);
+	while (script_h.hasMoreArgs()) {
+		script_h.readVariable();
+	}
+	return RET_CONTINUE;
+#endif
+
 	if (!readIniFile(script_h.readFilePath(), fileInfo)) {
 		script_h.setInt(&script_h.pushed_variable, -1);
 		while (script_h.hasMoreArgs()) script_h.readVariable();

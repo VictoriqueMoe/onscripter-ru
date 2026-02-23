@@ -1884,7 +1884,7 @@ void ONScripter::executeLabel() {
 					postGame = true;
 				}
 			}
-			if (postGame && execCount < 16200) {
+			if (postGame && execCount < 17000) {
 				auto st = script_h.getCurrent();
 				auto firstRN0 = strpbrk(st, "\r\n");
 				int eol = firstRN0 ? static_cast<int>(firstRN0 - st) : 40;
@@ -1911,7 +1911,7 @@ void ONScripter::executeLabel() {
 				commandExecutionTime += SDL_GetPerformanceCounter() - start;
 
 #ifdef __EMSCRIPTEN__
-				if (postGame && execCount < 16200) {
+				if (postGame && execCount < 17000) {
 					fprintf(stderr, "  -> ret=0x%x mode=%d label=%s line=%d\n",
 						ret, current_mode,
 						current_label_info ? current_label_info->name : "null", current_line);
@@ -1919,7 +1919,7 @@ void ONScripter::executeLabel() {
 #endif
 			} else {
 #ifdef __EMSCRIPTEN__
-				if (postGame && execCount < 16200) {
+				if (postGame && execCount < 17000) {
 					fprintf(stderr, "  -> scriptExec NOT permitted: event_cb=%p ecr=%d dlg=%d\n",
 						(void*)event_callback_label, eventCallbackRequired ? 1 : 0,
 						dlgCtrl.wantsControl() ? 1 : 0);
