@@ -375,6 +375,13 @@ void ONScripter::waitEvent(int count, bool nopPreferred) {
 			if (cursor)
 				SDL_SetCursor(nullptr);
 			if (screenChanged && !window.getFullscreenFix() && should_flip) {
+#ifdef __EMSCRIPTEN__
+				static int flipCount = 0;
+				if (flipCount < 5) {
+					fprintf(stderr, "GPU_Flip #%d (screen_target=%p)\n", flipCount, (void*)screen_target);
+				}
+				flipCount++;
+#endif
 				GPU_Flip(screen_target);
 				screenChanged = false;
 				gpu.clearWholeTarget(screen_target);
@@ -382,9 +389,26 @@ void ONScripter::waitEvent(int count, bool nopPreferred) {
 				emscripten_sleep(0);
 #endif
 			} else {
+#ifdef __EMSCRIPTEN__
+				static int noFlipCount = 0;
+				if (noFlipCount < 3) {
+					fprintf(stderr, "waitEvent: no flip (screenChanged=%d, fullscreenFix=%d, should_flip=%d)\n",
+						screenChanged, window.getFullscreenFix(), should_flip);
+				}
+				noFlipCount++;
+#endif
 				// We didn't update, assume screenChanged to be false
 				screenChanged = false;
 			}
+		} else {
+#ifdef __EMSCRIPTEN__
+			static int skipCount = 0;
+			if (skipCount < 3) {
+				fprintf(stderr, "waitEvent: rendering skipped (allow=%d, sskip=%d, deferred=%d)\n",
+					allow_rendering, (skip_mode & SKIP_SUPERSKIP) ? 1 : 0, deferredLoadingEnabled ? 1 : 0);
+			}
+			skipCount++;
+#endif
 		}
 
 #ifndef DROID
