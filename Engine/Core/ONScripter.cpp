@@ -1863,18 +1863,25 @@ void ONScripter::executeLabel() {
 #ifdef __EMSCRIPTEN__
 			{
 				static int execDiag = 0;
-				if (execDiag < 30) {
-					bool ecb = event_callback_label && eventCallbackRequired && !inVariableQueueSubroutine && !callStackHasUninterruptible;
-					bool dlg = dlgCtrl.wantsControl() && !callStackHasUninterruptible;
+				static bool pastStart = false;
+				if (!pastStart && current_label_info && current_label_info->name) {
+					if (strcmp(current_label_info->name, "start") == 0 ||
+						strcmp(current_label_info->name, "first_setting") == 0 ||
+						strcmp(current_label_info->name, "first_setting3") == 0) {
+						pastStart = true;
+						execDiag = 0;
+					}
+				}
+				if (pastStart && execDiag < 100) {
 					bool sep = scriptExecutionPermitted();
 					auto st = script_h.getCurrent();
 					auto firstRN0 = strpbrk(st, "\r\n");
 					int eol = firstRN0 ? static_cast<int>(firstRN0 - st) : 40;
-					if (eol > 80) {
-						eol = 80;
+					if (eol > 120) {
+						eol = 120;
 					}
-					fprintf(stderr, "executeLabel #%d: ecb=%d dlg=%d sep=%d line=%d cmd=%.*s\n",
-						execDiag, ecb ? 1 : 0, dlg ? 1 : 0, sep ? 1 : 0, current_line, eol, st);
+					fprintf(stderr, "exec #%d [%s:%d] sep=%d cmd=%.*s\n",
+						execDiag, current_label_info->name, current_line, sep ? 1 : 0, eol, st);
 					execDiag++;
 				}
 			}
