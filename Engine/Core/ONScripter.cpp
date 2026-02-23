@@ -19,6 +19,10 @@
 #include "Resources/Support/Version.hpp"
 #include "Support/FileIO.hpp"
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 #ifdef USE_OBJC
 #ifdef MACOSX
 #include "Support/Apple/CocoaWrapper.hpp"
@@ -1829,21 +1833,31 @@ void ONScripter::executeLabel() {
 
 			static unsigned int waitEventCounter{0};
 			if (!atomic_flag) {
-				waitEventCounter = (waitEventCounter + 1) % 5000; // run once every 5000 commands in superskip mode
-				if (!(skip_mode & SKIP_SUPERSKIP) || !waitEventCounter) {
-					bool waitedOnce = false;
-					while (takeEventsOut(ONS_UPKEEP_EVENT)) {
-						waitedOnce = true;
-						waitEvent(0);
+#ifdef __EMSCRIPTEN__
+				if (current_mode == DEFINE_MODE) {
+					waitEventCounter++;
+					if (waitEventCounter % 10000 == 0) {
+						emscripten_sleep(0);
 					}
-					if (!waitedOnce) {
-						// We assume that no command wants to share its event with the other command, unless it uses a CRAction
-						// Reset event_mode to idle, to avoid any collisions of not freed event_mode (e.g. in clickCommand)
-						event_mode = IDLE_EVENT_MODE;
-						//We must return control to waitEvent here to give the screen a chance to update when it is time
-						//  (Otherwise long script for-loops etc may never give script a chance to waitEvent and hence refresh the screen)
-						//We'll pass nopPreferred so that we come back here immediately unless we really do need to draw
-						waitEvent(0, true);
+				} else
+#endif
+				{
+					waitEventCounter = (waitEventCounter + 1) % 5000; // run once every 5000 commands in superskip mode
+					if (!(skip_mode & SKIP_SUPERSKIP) || !waitEventCounter) {
+						bool waitedOnce = false;
+						while (takeEventsOut(ONS_UPKEEP_EVENT)) {
+							waitedOnce = true;
+							waitEvent(0);
+						}
+						if (!waitedOnce) {
+							// We assume that no command wants to share its event with the other command, unless it uses a CRAction
+							// Reset event_mode to idle, to avoid any collisions of not freed event_mode (e.g. in clickCommand)
+							event_mode = IDLE_EVENT_MODE;
+							//We must return control to waitEvent here to give the screen a chance to update when it is time
+							//  (Otherwise long script for-loops etc may never give script a chance to waitEvent and hence refresh the screen)
+							//We'll pass nopPreferred so that we come back here immediately unless we really do need to draw
+							waitEvent(0, true);
+						}
 					}
 				}
 			}
