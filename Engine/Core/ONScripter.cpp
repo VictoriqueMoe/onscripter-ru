@@ -986,12 +986,8 @@ int ONScripter::ownInit() {
 	// Prepare basic window support.
 	window.init();
 
-	fprintf(stderr, "[DEBUG] ownInit: calling open()\n");
-	if (open()) {
-		fprintf(stderr, "[DEBUG] ownInit: open() FAILED\n");
+	if (open())
 		return -1;
-	}
-	fprintf(stderr, "[DEBUG] ownInit: open() succeeded\n");
 
 	if (!script_h.save_path)
 		lookupSavePath();
@@ -1117,12 +1113,9 @@ int ONScripter::ownInit() {
 	internal_timer = SDL_GetTicks();
 
 	loadEnvData();
-	fprintf(stderr, "[DEBUG] ownInit: loadEnvData done, calling defineresetCommand\n");
 
 	defineresetCommand();
-	fprintf(stderr, "[DEBUG] ownInit: defineresetCommand done, calling readToken\n");
 	readToken();
-	fprintf(stderr, "[DEBUG] ownInit: readToken done, init complete\n");
 
 	return 0;
 }
@@ -1787,17 +1780,6 @@ void ONScripter::updateButtonsToDefaultState(GPU_Rect &check_src_rect, GPU_Rect 
 
 void ONScripter::executeLabel() {
 	int last_token_line = -1;
-	LabelInfo *prev_label_info = current_label_info;
-	static const int CMD_RING_SIZE = 10;
-	struct CmdRecord { int line; int numLines; const char *labelName; char cmd[80]; };
-	CmdRecord cmdRing[CMD_RING_SIZE];
-	int cmdRingIdx = 0;
-	int totalCmds = 0;
-
-	fprintf(stderr, "[DEBUG] executeLabel: entering, label=%s, lines=%d, current_line=%d, mode=%d\n",
-	        current_label_info->name ? current_label_info->name : "(null)",
-	        current_label_info->num_of_lines, current_line, current_mode);
-	fflush(stderr);
 
 	while (true) {
 		while (current_line < current_label_info->num_of_lines) {
@@ -1874,45 +1856,48 @@ void ONScripter::executeLabel() {
 			} else if (dlgCtrl.wantsControl() && !callStackHasUninterruptible) {
 				ret = dlgCtrl.processDialogueEvents();
 			} else if (scriptExecutionPermitted()) {
+
+				//static auto prevEnd = SDL_GetPerformanceCounter();
+				//auto start = SDL_GetPerformanceCounter();
+
+				// Very useful debugging code! :)
+				// Uncomment to use
+				/*{
+					std::ostringstream logStream;
+					logStream << "Since last command: " << (start-prevEnd);
+					if (script_h.debugCommandLog.size() > 300) script_h.debugCommandLog.pop_front();
+					script_h.debugCommandLog.push_back(logStream.str());
+				}
+				
 				{
-					const char *cmdBuf = script_h.getStringBuffer();
-					CmdRecord &rec = cmdRing[cmdRingIdx % CMD_RING_SIZE];
-					rec.line = current_line;
-					rec.numLines = current_label_info->num_of_lines;
-					rec.labelName = current_label_info->name;
-					if (cmdBuf) {
-						strncpy(rec.cmd, cmdBuf, 79);
-						rec.cmd[79] = '\0';
-					} else {
-						rec.cmd[0] = '\0';
-					}
-					cmdRingIdx++;
-					totalCmds++;
-				}
+					auto st = script_h.getCurrent();
+					auto firstRN0 = strpbrk(st, "\r\n\0");
+					int eol = firstRN0 ? firstRN0 - st : 0;
+					std::string log;
+					log.insert(0, st, eol);
+					//if (script_h.getStringBuffer()) {
+					//	log += "(((";
+					//	log += script_h.getStringBuffer();
+					//	log += ")))";
+					//}
+					if (script_h.debugCommandLog.size() > 300) script_h.debugCommandLog.pop_front();
+					script_h.debugCommandLog.push_back(log);
+					log.clear();
+				}*/
 
-				if (prev_label_info != current_label_info) {
-					fprintf(stderr, "[DEBUG] executeLabel: label CHANGED from %s to %s at cmd #%d, line=%d\n",
-					        prev_label_info->name ? prev_label_info->name : "(null)",
-					        current_label_info->name ? current_label_info->name : "(null)",
-					        totalCmds, current_line);
-					fflush(stderr);
-					prev_label_info = current_label_info;
-				}
-
+				// count script execution time
 				auto start = SDL_GetPerformanceCounter();
 				ret        = ScriptParser::parseLine();
 				if (ret == RET_NOMATCH)
 					ret = this->parseLine();
 				commandExecutionTime += SDL_GetPerformanceCounter() - start;
 
-				if (prev_label_info != current_label_info) {
-					fprintf(stderr, "[DEBUG] executeLabel: label CHANGED by parseLine from %s to %s at cmd #%d, line=%d\n",
-					        prev_label_info->name ? prev_label_info->name : "(null)",
-					        current_label_info->name ? current_label_info->name : "(null)",
-					        totalCmds, current_line);
-					fflush(stderr);
-					prev_label_info = current_label_info;
-				}
+				/*std::ostringstream logStream;
+				logStream << "Command execution time: " << (end-start);
+				if (script_h.debugCommandLog.size() > 300) script_h.debugCommandLog.pop_front();
+				script_h.debugCommandLog.push_back(logStream.str());
+				
+				prevEnd = end;*/
 			}
 
 			// These need to execute in both cases.
@@ -1927,29 +1912,10 @@ void ONScripter::executeLabel() {
 				readToken();
 		}
 
-		fprintf(stderr, "[DEBUG] executeLabel: inner loop done after %d cmds, label=%s, current_line=%d/%d\n",
-		        totalCmds,
-		        current_label_info->name ? current_label_info->name : "(null)",
-		        current_line, current_label_info->num_of_lines);
-		fprintf(stderr, "[DEBUG] Last %d commands:\n", cmdRingIdx < CMD_RING_SIZE ? cmdRingIdx : CMD_RING_SIZE);
-		for (int di = 0; di < CMD_RING_SIZE && di < cmdRingIdx; di++) {
-			int idx = (cmdRingIdx - CMD_RING_SIZE + di);
-			if (idx < 0) {
-				idx = di;
-			}
-			CmdRecord &r = cmdRing[idx % CMD_RING_SIZE];
-			fprintf(stderr, "  [%d] line=%d/%d label=%s cmd=%.60s\n",
-			        di, r.line, r.numLines, r.labelName ? r.labelName : "(null)", r.cmd);
-		}
-		fflush(stderr);
 		current_label_info = script_h.lookupLabelNext(current_label_info->name);
 		current_line       = 0;
 		last_token_line    = -1;
 
-		fprintf(stderr, "[DEBUG] executeLabel: lookupLabelNext returned label=%s, start_address=%p\n",
-		        current_label_info->name ? current_label_info->name : "(null)",
-		        (void*)current_label_info->start_address);
-		fflush(stderr);
 		if (current_label_info->start_address != nullptr) {
 			if (!tryEndSuperSkip(false))
 				script_h.setCurrent(current_label_info->label_header);
