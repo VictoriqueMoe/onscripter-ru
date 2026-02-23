@@ -27,6 +27,34 @@
 #include <shlobj.h>
 #elif defined(__EMSCRIPTEN__)
 #include <emscripten.h>
+
+EM_ASYNC_JS(int, emscripten_fetch_to_vfs, (const char *c_path), {
+	var path = UTF8ToString(c_path);
+	if (!window.gameFileSet || !window.gameFileSet.has(path)) {
+		return 0;
+	}
+	try {
+		var stat = FS.stat(path);
+		if (stat.size > 0) {
+			return 0;
+		}
+	} catch (e) {
+		return 0;
+	}
+	try {
+		var response = await fetch(path);
+		if (!response.ok) {
+			return -1;
+		}
+		var data = new Uint8Array(await response.arrayBuffer());
+		FS.writeFile(path, data);
+		window.gameFileSet.delete(path);
+		return 0;
+	} catch (e) {
+		return -1;
+	}
+});
+
 #elif defined(LINUX)
 #include <sys/wait.h>
 #elif defined(DROID)
@@ -709,7 +737,10 @@ FILE *FileIO::openFile(const std::string &path, const char *mode, bool unicode) 
 	(void)unicode;
 	auto cpath = path.c_str();
 	FILE *fp   = nullptr;
-#ifdef WIN32
+#ifdef __EMSCRIPTEN__
+	emscripten_fetch_to_vfs(cpath);
+	fp = std::fopen(cpath, mode);
+#elif defined(WIN32)
 	if (unicode && hasUnicode(cpath, path.size())) {
 		auto wpath = decodeUTF8StringWide(cpath);
 		auto wmode = decodeUTF8StringWide(mode);
