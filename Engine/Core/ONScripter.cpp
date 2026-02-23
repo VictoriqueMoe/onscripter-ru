@@ -1871,26 +1871,28 @@ void ONScripter::executeLabel() {
 
 			int ret{RET_NO_READ};
 #ifdef __EMSCRIPTEN__
-			{
-				static int execCount = 0;
-				static int lastMode = -1;
-				execCount++;
-				if (current_mode != lastMode) {
-					fprintf(stderr, "=== MODE CHANGE: %d -> %d at execCount=%d label=%s line=%d ===\n",
-						lastMode, current_mode, execCount,
-						current_label_info ? current_label_info->name : "null", current_line);
-					lastMode = current_mode;
+			static int execCount = 0;
+			static int lastMode = -1;
+			static bool postGame = false;
+			execCount++;
+			if (current_mode != lastMode) {
+				fprintf(stderr, "=== MODE CHANGE: %d -> %d at execCount=%d label=%s line=%d ===\n",
+					lastMode, current_mode, execCount,
+					current_label_info ? current_label_info->name : "null", current_line);
+				lastMode = current_mode;
+				if (current_mode == NORMAL_MODE) {
+					postGame = true;
 				}
-				if (execCount > 15500 && execCount < 15700) {
-					auto st = script_h.getCurrent();
-					auto firstRN0 = strpbrk(st, "\r\n");
-					int eol = firstRN0 ? static_cast<int>(firstRN0 - st) : 40;
-					if (eol > 120) {
-						eol = 120;
-					}
-					fprintf(stderr, "X[%s:%d m=%d] #%d cmd=%.*s\n",
-						current_label_info ? current_label_info->name : "?", current_line, current_mode, execCount, eol, st);
+			}
+			if (postGame && execCount < 16200) {
+				auto st = script_h.getCurrent();
+				auto firstRN0 = strpbrk(st, "\r\n");
+				int eol = firstRN0 ? static_cast<int>(firstRN0 - st) : 40;
+				if (eol > 120) {
+					eol = 120;
 				}
+				fprintf(stderr, "X[%s:%d m=%d] #%d cmd=%.*s\n",
+					current_label_info ? current_label_info->name : "?", current_line, current_mode, execCount, eol, st);
 			}
 #endif
 			if (event_callback_label && eventCallbackRequired && !inVariableQueueSubroutine && !callStackHasUninterruptible) {
@@ -1908,12 +1910,21 @@ void ONScripter::executeLabel() {
 					ret = this->parseLine();
 				commandExecutionTime += SDL_GetPerformanceCounter() - start;
 
-				/*std::ostringstream logStream;
-				logStream << "Command execution time: " << (end-start);
-				if (script_h.debugCommandLog.size() > 300) script_h.debugCommandLog.pop_front();
-				script_h.debugCommandLog.push_back(logStream.str());
-				
-				prevEnd = end;*/
+#ifdef __EMSCRIPTEN__
+				if (postGame && execCount < 16200) {
+					fprintf(stderr, "  -> ret=0x%x mode=%d label=%s line=%d\n",
+						ret, current_mode,
+						current_label_info ? current_label_info->name : "null", current_line);
+				}
+#endif
+			} else {
+#ifdef __EMSCRIPTEN__
+				if (postGame && execCount < 16200) {
+					fprintf(stderr, "  -> scriptExec NOT permitted: event_cb=%p ecr=%d dlg=%d\n",
+						(void*)event_callback_label, eventCallbackRequired ? 1 : 0,
+						dlgCtrl.wantsControl() ? 1 : 0);
+				}
+#endif
 			}
 
 			// These need to execute in both cases.

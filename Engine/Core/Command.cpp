@@ -2507,14 +2507,23 @@ int ONScripter::getcselnumCommand() {
 
 int ONScripter::gameCommand() {
 	int i;
+#ifdef __EMSCRIPTEN__
+	fprintf(stderr, "gameCommand: entering, current_mode=%d\n", current_mode);
+#endif
 	current_mode = NORMAL_MODE;
 	effectspeed  = EFFECTSPEED_NORMAL;
 
 	/* ---------------------------------------- */
 	/* Load default cursor */
+#ifdef __EMSCRIPTEN__
+	fprintf(stderr, "gameCommand: loading cursors\n");
+#endif
 	loadCursor(CURSOR_WAIT_NO, DEFAULT_CURSOR_WAIT, 0, 0);
 	loadCursor(CURSOR_NEWPAGE_NO, DEFAULT_CURSOR_NEWPAGE, 0, 0);
 
+#ifdef __EMSCRIPTEN__
+	fprintf(stderr, "gameCommand: clearCurrentPage\n");
+#endif
 	clearCurrentPage();
 
 	/* ---------------------------------------- */
@@ -2522,9 +2531,18 @@ int ONScripter::gameCommand() {
 	for (i = 0; i < script_h.global_variable_border; i++)
 		script_h.getVariableData(i).reset(false);
 
+#ifdef __EMSCRIPTEN__
+	fprintf(stderr, "gameCommand: setCurrentLabel start\n");
+#endif
 	setCurrentLabel("start");
+#ifdef __EMSCRIPTEN__
+	fprintf(stderr, "gameCommand: saveSaveFile\n");
+#endif
 	saveSaveFile(-1);
 
+#ifdef __EMSCRIPTEN__
+	fprintf(stderr, "gameCommand: returning RET_CONTINUE, current_mode=%d\n", current_mode);
+#endif
 	return RET_CONTINUE;
 }
 
