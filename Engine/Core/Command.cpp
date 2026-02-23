@@ -2934,7 +2934,7 @@ int ONScripter::defineresetCommand() {
 	for (auto &textTree : dataTrees)
 		textTree.clear();
 
-	fprintf(stderr, "[DEBUG] defineresetCommand: about to setCurrentLabel(\"define\"), num_of_labels=%u\n", script_h.num_of_labels);
+	fprintf(stderr, "[DEBUG] defineresetCommand: about to setCurrentLabel(\"define\")\n");
 	setCurrentLabel("define");
 	fprintf(stderr, "[DEBUG] defineresetCommand: setCurrentLabel succeeded\n");
 
