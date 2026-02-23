@@ -18,7 +18,7 @@
 #include <ctime>
 
 #ifdef __EMSCRIPTEN__
-extern void emscripten_sync_idbfs();
+extern "C" void emscripten_sync_idbfs();
 #endif
 
 const uint32_t SAVEFILE_MAGIC_NUMBER = 0x534E4F52; // RONS
