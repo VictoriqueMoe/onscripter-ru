@@ -1787,6 +1787,12 @@ void ONScripter::updateButtonsToDefaultState(GPU_Rect &check_src_rect, GPU_Rect 
 
 void ONScripter::executeLabel() {
 	int last_token_line = -1;
+	LabelInfo *prev_label_info = current_label_info;
+	static const int CMD_RING_SIZE = 10;
+	struct CmdRecord { int line; int numLines; const char *labelName; char cmd[80]; };
+	CmdRecord cmdRing[CMD_RING_SIZE];
+	int cmdRingIdx = 0;
+	int totalCmds = 0;
 
 	fprintf(stderr, "[DEBUG] executeLabel: entering, label=%s, lines=%d, current_line=%d, mode=%d\n",
 	        current_label_info->name ? current_label_info->name : "(null)",
@@ -1794,10 +1800,6 @@ void ONScripter::executeLabel() {
 	fflush(stderr);
 
 	while (true) {
-		fprintf(stderr, "[DEBUG] executeLabel outer loop: label=%s, lines=%d, current_line=%d\n",
-		        current_label_info->name ? current_label_info->name : "(null)",
-		        current_label_info->num_of_lines, current_line);
-		fflush(stderr);
 		while (current_line < current_label_info->num_of_lines) {
 			if ((debug_level > 1) && (last_token_line != current_line) &&
 			    (script_h.getStringBufferR()[0] != 0x0a)) {
@@ -1873,16 +1875,28 @@ void ONScripter::executeLabel() {
 				ret = dlgCtrl.processDialogueEvents();
 			} else if (scriptExecutionPermitted()) {
 				{
-					static int cmdCount = 0;
-					cmdCount++;
 					const char *cmdBuf = script_h.getStringBuffer();
-					if (cmdCount <= 20 || (cmdBuf && (strncmp(cmdBuf, "game", 4) == 0 || strncmp(cmdBuf, "end", 3) == 0))) {
-						fprintf(stderr, "[DEBUG] executeLabel cmd #%d: line=%d/%d label=%s cmd=%.60s\n",
-						        cmdCount, current_line, current_label_info->num_of_lines,
-						        current_label_info->name ? current_label_info->name : "(null)",
-						        cmdBuf ? cmdBuf : "(null)");
-						fflush(stderr);
+					CmdRecord &rec = cmdRing[cmdRingIdx % CMD_RING_SIZE];
+					rec.line = current_line;
+					rec.numLines = current_label_info->num_of_lines;
+					rec.labelName = current_label_info->name;
+					if (cmdBuf) {
+						strncpy(rec.cmd, cmdBuf, 79);
+						rec.cmd[79] = '\0';
+					} else {
+						rec.cmd[0] = '\0';
 					}
+					cmdRingIdx++;
+					totalCmds++;
+				}
+
+				if (prev_label_info != current_label_info) {
+					fprintf(stderr, "[DEBUG] executeLabel: label CHANGED from %s to %s at cmd #%d, line=%d\n",
+					        prev_label_info->name ? prev_label_info->name : "(null)",
+					        current_label_info->name ? current_label_info->name : "(null)",
+					        totalCmds, current_line);
+					fflush(stderr);
+					prev_label_info = current_label_info;
 				}
 
 				auto start = SDL_GetPerformanceCounter();
@@ -1890,12 +1904,14 @@ void ONScripter::executeLabel() {
 				if (ret == RET_NOMATCH)
 					ret = this->parseLine();
 				commandExecutionTime += SDL_GetPerformanceCounter() - start;
-			} else {
-				static int skippedCount = 0;
-				skippedCount++;
-				if (skippedCount <= 5) {
-					fprintf(stderr, "[DEBUG] executeLabel: scriptExecutionPermitted=false, skipping line=%d\n", current_line);
+
+				if (prev_label_info != current_label_info) {
+					fprintf(stderr, "[DEBUG] executeLabel: label CHANGED by parseLine from %s to %s at cmd #%d, line=%d\n",
+					        prev_label_info->name ? prev_label_info->name : "(null)",
+					        current_label_info->name ? current_label_info->name : "(null)",
+					        totalCmds, current_line);
 					fflush(stderr);
+					prev_label_info = current_label_info;
 				}
 			}
 
@@ -1911,8 +1927,20 @@ void ONScripter::executeLabel() {
 				readToken();
 		}
 
-		fprintf(stderr, "[DEBUG] executeLabel: inner loop done, about to lookupLabelNext, label=%s\n",
-		        current_label_info->name ? current_label_info->name : "(null)");
+		fprintf(stderr, "[DEBUG] executeLabel: inner loop done after %d cmds, label=%s, current_line=%d/%d\n",
+		        totalCmds,
+		        current_label_info->name ? current_label_info->name : "(null)",
+		        current_line, current_label_info->num_of_lines);
+		fprintf(stderr, "[DEBUG] Last %d commands:\n", cmdRingIdx < CMD_RING_SIZE ? cmdRingIdx : CMD_RING_SIZE);
+		for (int di = 0; di < CMD_RING_SIZE && di < cmdRingIdx; di++) {
+			int idx = (cmdRingIdx - CMD_RING_SIZE + di);
+			if (idx < 0) {
+				idx = di;
+			}
+			CmdRecord &r = cmdRing[idx % CMD_RING_SIZE];
+			fprintf(stderr, "  [%d] line=%d/%d label=%s cmd=%.60s\n",
+			        di, r.line, r.numLines, r.labelName ? r.labelName : "(null)", r.cmd);
+		}
 		fflush(stderr);
 		current_label_info = script_h.lookupLabelNext(current_label_info->name);
 		current_line       = 0;
