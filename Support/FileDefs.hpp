@@ -11,7 +11,7 @@
 
 #include "External/Compatibility.hpp"
 
-#ifdef LINUX
+#if defined(LINUX) && !defined(__EMSCRIPTEN__)
 #include <linux/limits.h>
 #endif
 

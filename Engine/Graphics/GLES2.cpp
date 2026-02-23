@@ -7,7 +7,7 @@
  *  Consult LICENSE file for licensing terms and copyright holders.
  */
 
-#if defined(IOS) || defined(DROID) || defined(WIN32)
+#if defined(IOS) || defined(DROID) || defined(WIN32) || defined(__EMSCRIPTEN__)
 
 #if defined(WIN32) && !defined(SDL_GPU_DYNAMIC_GLES_2)
 #define SDL_GPU_DYNAMIC_GLES_2 1

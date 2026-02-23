@@ -18,6 +18,10 @@
 #include <sys/wait.h>
 #endif
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 #include <numeric>
 
 const uint32_t MAX_TOUCH_TAP_TIMESPAN{80};
@@ -354,7 +358,11 @@ void ONScripter::waitEvent(int count, bool nopPreferred) {
 			bool processed{mainThreadDowntimeProcessing(false)};
 			// if we're way ahead of schedule (defined here as more than 5ms), let's have a little nap so we don't destroy everyone's CPU
 			if (!processed && ((ticksNow - lastFlipTime) + 5 <= timeThisFrame)) {
+#ifdef __EMSCRIPTEN__
+				emscripten_sleep(1);
+#else
 				SDL_Delay(1);
+#endif
 			}
 		}
 

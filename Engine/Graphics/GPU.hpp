@@ -497,14 +497,23 @@ public:
 	void syncRendererStateGL2();
 	int getMaxTextureSizeGL2();
 
-#if defined(DROID) || defined(IOS)
-	// This is generally too harsh on iOS
+#if defined(DROID) || defined(IOS) || defined(__EMSCRIPTEN__)
 	static constexpr size_t GlobalImagePoolSize{10};
 #else
 	static constexpr size_t GlobalImagePoolSize{20};
 #endif
 
-#if defined(DROID) || defined(IOS)
+#if defined(__EMSCRIPTEN__)
+	GPURendererInfo renderers[1]{
+	    {"GLES2",
+	     &GPUController::makeRendererIdGLES2,
+	     &GPUController::initRendererFlagsGLES2,
+	     &GPUController::getImageFormatGLES2,
+	     &GPUController::printBlitBufferStateGLES2,
+	     &GPUController::syncRendererStateGLES2,
+	     &GPUController::getMaxTextureSizeGLES2,
+	     true}};
+#elif defined(DROID) || defined(IOS)
 	GPURendererInfo renderers[2]{
 	    {"GLES2",
 	     &GPUController::makeRendererIdGLES2,

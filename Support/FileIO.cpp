@@ -25,6 +25,8 @@
 #elif defined(WIN32)
 #include <windows.h>
 #include <shlobj.h>
+#elif defined(__EMSCRIPTEN__)
+#include <emscripten.h>
 #elif defined(LINUX)
 #include <sys/wait.h>
 #elif defined(DROID)
@@ -352,8 +354,7 @@ bool FileIO::restartApp(const std::vector<char *> &args) {
 
 	if (CreateProcessW(nullptr, const_cast<wchar_t *>(cmdArgs.c_str()), nullptr, nullptr, false, 0, nullptr, nullptr, &startupInfo, &processInfo))
 		return true;
-#elif defined(MACOSX) || defined(LINUX)
-	// Use execv on macOS and Linux
+#elif (defined(MACOSX) || defined(LINUX)) && !defined(__EMSCRIPTEN__)
 	execv(args[0], args.data());
 #endif
 
@@ -371,20 +372,19 @@ bool FileIO::shellOpen(const std::string &path, FileType type) {
 #elif defined(MACOSX)
 	auto cmd = "open \"" + path + '"';
 	return !system(cmd.c_str());
+#elif defined(__EMSCRIPTEN__)
+	return false;
 #elif defined(LINUX)
 	auto tryXdgOpen = [](const std::string &target) {
 		pid_t child = vfork();
 		if (child == -1) {
-			// Parent, failed
 			sendToLog(LogLevel::Error, "Could not open `%s': fork error: %s\n", target.c_str(), strerror(errno));
 		} else if (child) {
-			// Parent, success
 			int status;
 			waitpid(child, &status, 0);
 			if (WIFEXITED(status))
 				return WEXITSTATUS(status) == 0;
 		} else {
-			// Child
 			execlp("xdg-open", "xdg-open", target.c_str(), nullptr);
 			std::exit(EXIT_FAILURE);
 		}
@@ -444,6 +444,8 @@ const char *FileIO::getLaunchDir() {
 #elif defined(MACOSX)
 		uint32_t bufsize = PATH_MAX;
 		_NSGetExecutablePath(launchDir, &bufsize);
+#elif defined(__EMSCRIPTEN__)
+		copystr(launchDir, "/game/", PATH_MAX);
 #elif defined(LINUX)
 		if (readlink("/proc/self/exe", launchDir, PATH_MAX - 1) == -1) {
 		}

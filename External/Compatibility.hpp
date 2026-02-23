@@ -9,7 +9,7 @@
 
 #pragma once
 
-#if !defined(MACOSX) && !defined(IOS) && !defined(LINUX) && !defined(WIN32) && !defined(DROID)
+#if !defined(MACOSX) && !defined(IOS) && !defined(LINUX) && !defined(WIN32) && !defined(DROID) && !defined(__EMSCRIPTEN__)
 	#error "Unknown operating system configuration!"
 #endif
 

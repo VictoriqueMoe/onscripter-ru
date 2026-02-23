@@ -14,7 +14,7 @@
 
 #include <SDL2/SDL.h>
 
-#if !defined(USE_LIBUSB) && (defined(LINUX) || defined(WIN32) || defined(MACOSX))
+#if !defined(USE_LIBUSB) && (defined(LINUX) || defined(WIN32) || defined(MACOSX)) && !defined(__EMSCRIPTEN__)
 #define USE_LIBUSB 1
 #include <libusb-1.0/libusb.h>
 #endif
