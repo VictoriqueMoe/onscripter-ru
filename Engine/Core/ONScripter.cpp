@@ -1835,10 +1835,6 @@ void ONScripter::executeLabel() {
 			if (!atomic_flag) {
 #ifdef __EMSCRIPTEN__
 				if (current_mode == DEFINE_MODE) {
-					waitEventCounter++;
-					if (waitEventCounter % 10000 == 0) {
-						emscripten_sleep(0);
-					}
 				} else
 #endif
 				{
