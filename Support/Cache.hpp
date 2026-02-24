@@ -158,10 +158,13 @@ class CacheController {
 
 protected:
 	void deleteExistingSet(int cacheSetNumber) {
-		CachedSet<SETELEM> *set = cacheSets.at(cacheSetNumber);
-		set->clear();
-		delete set;
-		cacheSets.erase(cacheSetNumber);
+		auto it = cacheSets.find(cacheSetNumber);
+		if (it == cacheSets.end()) {
+			return;
+		}
+		it->second->clear();
+		delete it->second;
+		cacheSets.erase(it);
 	}
 	std::unordered_map<int, CachedSet<SETELEM> *> cacheSets;
 
@@ -170,12 +173,11 @@ public:
 		for (auto &number_set_pair : cacheSets) number_set_pair.second->clear();
 	}
 	void clear(int cacheSetNumber) {
-		try {
-			CachedSet<SETELEM> *set = cacheSets.at(cacheSetNumber);
-			set->clear();
-		} catch (std::out_of_range &) {
+		auto it = cacheSets.find(cacheSetNumber);
+		if (it == cacheSets.end()) {
 			return;
 		}
+		it->second->clear();
 	}
 	void makeLRU(int cacheSetNumber, int capacity) {
 		if (cacheSets.count(cacheSetNumber) > 0)
@@ -197,16 +199,17 @@ public:
 			set = new UnlimitedCachedSet<SETELEM>();
 			cacheSets.emplace(cacheSetNumber, set);
 		} else {
-			set = cacheSets.at(cacheSetNumber);
+			set = cacheSets.find(cacheSetNumber)->second;
 		}
 
 		set->add(filename, elem);
 	}
 	void remove(int cacheSetNumber, const std::string &filename) {
-		if (cacheSets.count(cacheSetNumber) == 0) {
+		auto it = cacheSets.find(cacheSetNumber);
+		if (it == cacheSets.end()) {
 			return;
 		}
-		cacheSets.at(cacheSetNumber)->remove(filename);
+		it->second->remove(filename);
 	}
 	void removeAll(std::string filename) {
 		for (auto &number_set_pair : cacheSets) {
