@@ -1559,6 +1559,27 @@ int ONScripter::rumbleCommand() {
 int ONScripter::relaunchCommand() {
 	sendToLog(LogLevel::Info, "Relaunching...\n");
 #ifdef __EMSCRIPTEN__
+	user_cfg_options["first_launch"] = "passed";
+	{
+		std::string configData;
+		configData.reserve(1024);
+		const char *lineend = " \n";
+		for (auto &opt : ons_cfg_options) {
+			if (opt.second == "noval") {
+				configData += opt.first + lineend;
+			} else {
+				configData += opt.first + '=' + opt.second + lineend;
+			}
+		}
+		for (auto &opt : user_cfg_options) {
+			configData += "env[" + opt.first + "]=" + opt.second + lineend;
+		}
+		auto cfgFile = std::string(ons_cfg_path) + CFG_FILE;
+		auto tmpFile = cfgFile + ".tmp";
+		auto configBuffer = reinterpret_cast<const uint8_t *>(configData.c_str());
+		FileIO::writeFile(tmpFile, configBuffer, configData.size());
+		FileIO::renameFile(tmpFile, cfgFile, true);
+	}
 	emscripten_sync_idbfs();
 	EM_ASM(
 		location.reload();
