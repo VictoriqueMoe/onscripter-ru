@@ -996,6 +996,10 @@ int ONScripter::ownInit() {
 	if (!script_h.save_path)
 		lookupSavePath();
 
+#ifdef __EMSCRIPTEN__
+	copystr(ons_cfg_path, script_h.save_path, PATH_MAX);
+#endif
+
 	if (!equalstr(script_h.save_path, archive_path.getPath(0))) {
 		// insert save_path onto the front of archive_path
 		DirPaths new_path(script_h.save_path);

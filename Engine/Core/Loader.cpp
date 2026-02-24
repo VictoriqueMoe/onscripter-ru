@@ -821,6 +821,7 @@ int main(int argc, char **argv) {
 			works = initWithPath(FileIO::getPlatformSpecificDir(), hasArchivePath);
 	}
 
+
 	if (!works) {
 #ifdef MACOSX
 		performTerminate("Invalid launch directory!\nTry executing xattr -cr /path/to/onscripter-ru-osx.app");
