@@ -203,8 +203,7 @@ public:
 		set->add(filename, elem);
 	}
 	void remove(int cacheSetNumber, const std::string &filename) {
-		if (cacheSets.count(cacheSetNumber) != 0) {
-			// That set doesn't exist; cannot remove
+		if (cacheSets.count(cacheSetNumber) == 0) {
 			return;
 		}
 		cacheSets.at(cacheSetNumber)->remove(filename);

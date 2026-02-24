@@ -212,7 +212,7 @@ void GPUController::createShadersFromResources() {
 			std::vector<uint32_t> linksWith = findAllLinkTargets(reinterpret_cast<const char *>(r->buffer), r->size);
 			if (linksWith.empty()) {
 				createProgramFromShaders(r->filename, r->filename, "defaultVertex.vert");
-			} else {
+			} else if (shaders.count("defaultVertex.vert") > 0) {
 				linksWith.push_back(shaders.at("defaultVertex.vert"));
 				linksWith.push_back(shaders.at(r->filename));
 				createProgramFromShaders(r->filename, linksWith);
