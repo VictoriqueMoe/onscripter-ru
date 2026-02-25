@@ -508,6 +508,9 @@ void ONScripter::initSDL() {
 	SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
 	SDL_SetHint(SDL_HINT_VIDEO_HIGHDPI_DISABLED, "0");
 	SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1"); // this makes no difference but better to set it
+#ifdef __EMSCRIPTEN__
+	SDL_SetHint(SDL_HINT_EMSCRIPTEN_ASYNCIFY, "0");
+#endif
 
 #ifdef DROID
 	// For some less obvious reasons JNI setOrientation is called with 1x1 resolution on droid.
