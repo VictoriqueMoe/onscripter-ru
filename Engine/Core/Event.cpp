@@ -389,7 +389,6 @@ void ONScripter::waitEvent(int count, bool nopPreferred) {
 			} else {
 				screenChanged = false;
 #ifdef __EMSCRIPTEN__
-				GPU_Flip(screen_target);
 				emscripten_sleep(0);
 #endif
 			}
