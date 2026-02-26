@@ -1481,7 +1481,10 @@ void ONScripter::flush(int refresh_mode, GPU_Rect *scene_rect, GPU_Rect *hud_rec
 				before_dirty_rect_hud.add(*hud_rect);
 
 			if ((!before_dirty_rect_scene.isEmpty() || !before_dirty_rect_hud.isEmpty()) || camera.has_moved) {
+				sendToLog(LogLevel::Info, "flush: calling flushDirect rm=0x%x\n", refresh_mode);
 				flushDirect(before_dirty_rect_scene.bounding_box_script, before_dirty_rect_hud.bounding_box_script, refresh_mode);
+			} else {
+				sendToLog(LogLevel::Info, "flush: SKIPPED flushDirect (dirty rects empty, no camera move)\n");
 			}
 		} else {
 			if (scene_rect)

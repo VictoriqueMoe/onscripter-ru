@@ -836,6 +836,7 @@ void ONScripter::refreshSceneTo(GPU_Target *target, GPU_Rect *passed_script_clip
 	}
 
 	setupZLevels(rm);
+	sendToLog(LogLevel::Info, "refreshSceneTo: zLevels=%zu rm=0x%x\n", spriteZLevels.size(), rm);
 
 	GPU_Rect script_clip_dst = full_script_clip;
 	if (passed_script_clip_dst)
