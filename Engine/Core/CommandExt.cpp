@@ -126,6 +126,7 @@ int ONScripter::waitvoiceCommand() {
 }
 
 int ONScripter::waitvideoCommand() {
+	commitVisualState();
 	auto layer = getLayer<MediaLayer>(video_layer);
 
 	while (layer && layer->isPlaying(false) && video_skip_mode != VideoSkip::NotPlaying) {

@@ -232,12 +232,9 @@ bool MediaLayer::update(bool old) {
 	}
 #endif
 
-	sendToLog(LogLevel::Info, "MediaLayer::update framesToAdvance=%d videoState=0x%x\n", framesToAdvance, videoState);
-
 	if (framesToAdvance > 0) {
 		bool endOfFile      = false;
 		auto thisVideoFrame = media.advanceVideoFrames(framesToAdvance, endOfFile);
-		sendToLog(LogLevel::Info, "advanceVideoFrames: got=%p eof=%d\n", thisVideoFrame.get(), endOfFile);
 		if (endOfFile)
 			videoState |= VS_END_OF_FILE;
 
@@ -245,8 +242,6 @@ bool MediaLayer::update(bool old) {
 			// This is not a mistake, frame update logic does not depend on old
 			// old is only relevant in sprite verification
 			auto frame = frame_gpu[NewFrame] ? frame_gpu[NewFrame] : frame_gpu[DefFrame];
-			sendToLog(LogLevel::Info, "Rendering frame %lld: srcFormat=%d surface=%p frame_gpu=%p mask_gpu=%p videoRect=%dx%d\n",
-			          static_cast<long long>(thisVideoFrame->frameNumber), thisVideoFrame->srcFormat, thisVideoFrame->surface, frame, mask_gpu, static_cast<int>(videoRect.w), static_cast<int>(videoRect.h));
 			if (thisVideoFrame->srcFormat == AV_PIX_FMT_NV12 || thisVideoFrame->srcFormat == AV_PIX_FMT_YUV420P) {
 				ensurePlanesImgs(thisVideoFrame->srcFormat, thisVideoFrame->planesCnt, videoRect.w, mask_gpu ? videoRect.h * 2 : videoRect.h);
 				if (thisVideoFrame->srcFormat == AV_PIX_FMT_NV12) {

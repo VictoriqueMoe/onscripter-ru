@@ -103,10 +103,7 @@ int ONScripter::estimateNextDuration(AnimationInfo *anim, GPU_Rect & /*rect*/, i
 			}
 		} else if (anim->layer_no >= 0) {
 			auto handler = getLayer<Layer>(anim->layer_no, false);
-			bool updated = handler->update(old_ai);
-			sendToLog(LogLevel::Info, "estimateNextDuration: layer=%d id=%d updated=%d old_ai=%d pos=%.0fx%.0f visible=%d\n",
-			          anim->layer_no, anim->id, updated, old_ai, anim->pos.w, anim->pos.h, anim->visible);
-			if (updated) {
+			if (handler->update(old_ai)) {
 				dirtySpriteRect(anim, old_ai);
 			}
 			anim->clock.setCountdownNanos(anim->getDurationNanos(anim->current_cell));
@@ -1282,7 +1279,6 @@ void ONScripter::drawToGPUTarget(GPU_Target *target, AnimationInfo *info, int re
 		auto handler      = getLayer<Layer>(info->layer_no, false);
 		auto layer_target = target;
 		auto mode         = handler->blendingMode(refresh_mode);
-		sendToLog(LogLevel::Info, "drawToGPUTarget: TRANS_LAYER sprite id=%d layer_no=%d rm=0x%x\n", info->id, info->layer_no, refresh_mode);
 		if (sprite_transformation_image)
 			layer_target = sprite_transformation_image->target;
 		if (mode != BlendModeId::NORMAL)
