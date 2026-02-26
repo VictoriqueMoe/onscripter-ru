@@ -245,7 +245,7 @@ protected:
 		AVFrame *tempFrame{nullptr};
 
 	protected:
-		bool initSwsContext(int dstW, int dstH, const AVPixelFormat *format = nullptr, bool forHardware = true);
+		bool initSwsContext(int dstW, int dstH, const AVPixelFormat *format = nullptr, bool forHardware = true, int srcW = 0, int srcH = 0);
 		void deinitSwsContext();
 		bool initTiming(int64_t duration);
 

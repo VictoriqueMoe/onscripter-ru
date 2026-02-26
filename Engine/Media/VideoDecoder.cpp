@@ -144,7 +144,7 @@ long double MediaProcController::VideoDecoder::getVideoFramerate(bool &isVFR, bo
 	return bestFramerate;
 }
 
-bool MediaProcController::VideoDecoder::initSwsContext(int dstW, int dstH, const AVPixelFormat *format, bool forHardware) {
+bool MediaProcController::VideoDecoder::initSwsContext(int dstW, int dstH, const AVPixelFormat *format, bool forHardware, int srcW, int srcH) {
 	deinitSwsContext();
 
 	if (!format)
@@ -156,20 +156,23 @@ bool MediaProcController::VideoDecoder::initSwsContext(int dstW, int dstH, const
 	}
 
 	imageConvertSourceFormat = *format;
-	sendToLog(LogLevel::Info, "initSwsContext: src=%dx%d fmt=%d, dst=%dx%d, forHardware=%d\n",
-	          codecContext->width, codecContext->height, static_cast<int>(imageConvertSourceFormat), dstW, dstH, forHardware);
+
+	if (srcW <= 0) {
+		srcW = codecContext->width;
+	}
+	if (srcH <= 0) {
+		srcH = codecContext->height;
+	}
 
 #ifdef __EMSCRIPTEN__
-	imageConvertContext = sws_getContext(codecContext->width,
-	                                    codecContext->height,
+	imageConvertContext = sws_getContext(srcW, srcH,
 	                                    imageConvertSourceFormat,
 	                                    dstW, dstH,
 	                                    AV_PIX_FMT_RGB24, SWS_FAST_BILINEAR,
 	                                    nullptr, nullptr, nullptr);
 #else
 	imageConvertContext = sws_getCachedContext(nullptr,
-	                                           codecContext->width,
-	                                           codecContext->height,
+	                                           srcW, srcH,
 	                                           imageConvertSourceFormat,
 	                                           dstW, dstH,
 	                                           AV_PIX_FMT_RGB24, SWS_BICUBIC,
@@ -225,8 +228,6 @@ void MediaProcController::VideoDecoder::processFrame(MediaFrame &vf) {
 		int linesize[]{workingSurface->pitch};
 
 		if (imageConvertSourceFormat != frame->format) {
-			sendToLog(LogLevel::Info, "processFrame format mismatch: imageConvertSourceFormat=%d, frame->format=%d, codecContext->pix_fmt=%d, codecContext=%dx%d, surface=%dx%d\n",
-			          imageConvertSourceFormat, frame->format, codecContext->pix_fmt, codecContext->width, codecContext->height, workingSurface->w, workingSurface->h);
 			/* Check if we can use shader later on for conversion */
 			if (media.hardwareConversion && HardwareDecoderIFace::isFormatHWConverted(static_cast<AVPixelFormat>(frame->format))) {
 
@@ -244,17 +245,18 @@ void MediaProcController::VideoDecoder::processFrame(MediaFrame &vf) {
 
 			/* If we can't, fall back to sws */
 			else {
-				initSwsContext(workingSurface->w, workingSurface->h, reinterpret_cast<AVPixelFormat *>(&frame->format));
+				initSwsContext(workingSurface->w, workingSurface->h, reinterpret_cast<AVPixelFormat *>(&frame->format), true, frame->width, frame->height);
 				vf.srcFormat = AV_PIX_FMT_NONE;
 			}
 		}
 
-		if (vf.srcFormat == AV_PIX_FMT_NONE)
+		if (vf.srcFormat == AV_PIX_FMT_NONE) {
 			sws_scale(imageConvertContext,
 			          frame->data,
 			          frame->linesize,
-			          0, codecContext->height,
+			          0, frame->height,
 			          data, linesize);
+		}
 
 		vf.surface     = workingSurface;
 		vf.frameNumber = ++debugFrameNumber;
