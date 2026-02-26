@@ -351,6 +351,9 @@ public:
 	cmp::unique_ptr_del<uint8_t[]> advanceAudioChunks(size_t &buffSz);
 	void getVideoTimecodes(size_t &counter, AVPacket *packet, long double videoTimeBase);
 	bool finish(bool needLastFrame);
+#ifdef __EMSCRIPTEN__
+	void pumpSynchronous(int maxVideoFrames);
+#endif
 
 	uint64_t getNanosPerFrame() {
 		if (hasStream(VideoEntry)) {

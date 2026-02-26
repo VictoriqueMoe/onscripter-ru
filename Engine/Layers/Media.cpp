@@ -224,6 +224,12 @@ bool MediaLayer::update(bool old) {
 
 	//sendToLog(LogLevel::Info, "framesToAdvance: %i\n", framesToAdvance);
 
+#ifdef __EMSCRIPTEN__
+	if (framesToAdvance > 0) {
+		media.pumpSynchronous(framesToAdvance + 2);
+	}
+#endif
+
 	if (framesToAdvance > 0) {
 		bool endOfFile      = false;
 		auto thisVideoFrame = media.advanceVideoFrames(framesToAdvance, endOfFile);

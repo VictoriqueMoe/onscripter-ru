@@ -16,6 +16,10 @@
 #include <stdexcept>
 #include <cassert>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 MediaProcController media;
 
 int MediaProcController::ownInit() {
@@ -206,11 +210,15 @@ bool MediaProcController::loadVideo(const char *filename, unsigned audioStream, 
 bool MediaProcController::loadPresentation(const GPU_Rect &rect, bool loop) {
 	loopVideo = loop;
 
+#ifdef __EMSCRIPTEN__
+	decoderWorkerCount.store(0, std::memory_order_relaxed);
+#else
 	int nworkers = 0;
 	for (auto i : {VideoEntry, AudioEntry})
 		if (decoders[i])
 			nworkers++;
 	decoderWorkerCount.store(nworkers, std::memory_order_relaxed);
+#endif
 
 	demux = std::make_unique<MediaDemux>();
 	demux->prepare(decoders[VideoEntry] ? decoders[VideoEntry]->stream : MediaDemux::InvalidStream,
@@ -228,7 +236,32 @@ bool MediaProcController::loadPresentation(const GPU_Rect &rect, bool loop) {
 		imagePool->addImages(VideoPacketBufferSize);
 
 		initVideoTimecodesLock = SDL_CreateSemaphore(0);
+
+#ifdef __EMSCRIPTEN__
+		{
+			size_t counter = 0;
+			long double videoTimeBase = av_q2d(formatContext->streams[decoders[VideoEntry]->stream]->time_base);
+			AVPacket *pkt = av_packet_alloc();
+			while (counter < VideoPacketBufferSize) {
+				int ret = av_read_frame(formatContext, pkt);
+				if (ret < 0) {
+					for (; counter < VideoPacketBufferSize; counter++) {
+						initVideoTimecodes[counter] = 0;
+					}
+					break;
+				}
+				getVideoTimecodes(counter, pkt, videoTimeBase);
+				av_packet_unref(pkt);
+			}
+			av_packet_free(&pkt);
+			if (initVideoTimecodesLock) {
+				SDL_SemPost(initVideoTimecodesLock);
+			}
+			av_seek_frame(formatContext, decoders[VideoEntry]->stream, 0, AVSEEK_FLAG_BACKWARD);
+		}
+#else
 		async.loadPacketArrays();
+#endif
 
 		/* Get timing info */
 		vdec->initTiming(formatContext->duration);
@@ -294,12 +327,28 @@ void MediaProcController::frameSize(const SDL_Rect &rect, int &width, float &wFa
 }
 
 void MediaProcController::startProcessing() {
+#ifdef __EMSCRIPTEN__
+	pumpSynchronous(3);
+	return;
+#endif
 	async.loadVideoFrames();
 	if (hasStream(AudioEntry))
 		async.loadAudioFrames();
 }
 
 bool MediaProcController::finish(bool needLastFrame) {
+#ifdef __EMSCRIPTEN__
+	resetDecoders();
+
+	if (needLastFrame) {
+		resetFrameQueues(0, 1);
+	} else {
+		resetFrameQueues(1, 0);
+	}
+
+	resetDemuxer();
+	return true;
+#else
 	//TODO: implement skip to last frame
 
 	int value = decoderWorkerCount.load(std::memory_order_acquire);
@@ -342,6 +391,7 @@ bool MediaProcController::finish(bool needLastFrame) {
 	}
 
 	return false;
+#endif
 }
 
 void MediaProcController::resetDecoders() {
@@ -416,6 +466,105 @@ void MediaProcController::resetState() {
 	if (formatContext)
 		avformat_close_input(&formatContext);
 }
+
+#ifdef __EMSCRIPTEN__
+void MediaProcController::pumpSynchronous(int maxVideoFrames) {
+	if (!formatContext || !hasStream(VideoEntry)) {
+		return;
+	}
+
+	SDL_AtomicLock(&async.loadFramesQueue[VideoEntry].resultsLock);
+	bool alreadyEOF = !async.loadFramesQueue[VideoEntry].results.empty() &&
+	                  async.loadFramesQueue[VideoEntry].results.back() == nullptr;
+	SDL_AtomicUnlock(&async.loadFramesQueue[VideoEntry].resultsLock);
+	if (alreadyEOF) {
+		return;
+	}
+
+	int videoFramesDecoded = 0;
+	AVPacket *packet = av_packet_alloc();
+
+	while (videoFramesDecoded < maxVideoFrames) {
+		int readResult = av_read_frame(formatContext, packet);
+
+		if (readResult < 0) {
+			if (loopVideo) {
+				int seekRes = av_seek_frame(formatContext, decoders[VideoEntry]->stream, 0, AVSEEK_FLAG_BACKWARD);
+				if (seekRes < 0) {
+					for (auto entry : {VideoEntry, AudioEntry}) {
+						if (hasStream(entry)) {
+							SDL_AtomicLock(&async.loadFramesQueue[entry].resultsLock);
+							async.loadFramesQueue[entry].results.push_back(nullptr);
+							SDL_AtomicUnlock(&async.loadFramesQueue[entry].resultsLock);
+						}
+					}
+					break;
+				}
+				av_packet_unref(packet);
+				continue;
+			}
+
+			for (auto entry : {VideoEntry, AudioEntry}) {
+				if (hasStream(entry)) {
+					SDL_AtomicLock(&async.loadFramesQueue[entry].resultsLock);
+					async.loadFramesQueue[entry].results.push_back(nullptr);
+					SDL_AtomicUnlock(&async.loadFramesQueue[entry].resultsLock);
+				}
+			}
+			break;
+		}
+
+		MediaEntries entry = InvalidEntry;
+		if (!(packet->flags & AV_PKT_FLAG_CORRUPT)) {
+			if (hasStream(VideoEntry) && packet->stream_index == decoders[VideoEntry]->stream) {
+				entry = VideoEntry;
+			} else if (hasStream(AudioEntry) && packet->stream_index == decoders[AudioEntry]->stream) {
+				entry = AudioEntry;
+			} else if (hasStream(SubsEntry) && packet->stream_index == decoders[SubsEntry]->stream) {
+				entry = SubsEntry;
+			}
+		}
+
+		if (entry == SubsEntry) {
+			if (packet->buf && packet->buf->size > 0) {
+				processSubsData(reinterpret_cast<char *>(packet->buf->data), packet->buf->size);
+			}
+			av_packet_unref(packet);
+			continue;
+		}
+
+		if (entry == InvalidEntry) {
+			av_packet_unref(packet);
+			continue;
+		}
+
+		bool frameFinished = false;
+		decoders[entry]->decodeFrameFromPacket(frameFinished, packet);
+
+		if (frameFinished) {
+			auto vf = std::make_unique<MediaFrame>();
+			decoders[entry]->processFrame(*vf);
+
+			if (vf->has()) {
+				if (entry == VideoEntry) {
+					applySubtitles(*vf);
+					videoFramesDecoded++;
+				}
+
+				SDL_AtomicLock(&async.loadFramesQueue[entry].resultsLock);
+				async.loadFramesQueue[entry].results.push_back(vf.release());
+				SDL_AtomicUnlock(&async.loadFramesQueue[entry].resultsLock);
+			}
+
+			av_frame_unref(decoders[entry]->frame);
+		}
+
+		av_packet_unref(packet);
+	}
+
+	av_packet_free(&packet);
+}
+#endif
 
 void MediaProcController::decodeFrames(MediaEntries entry) {
 	if (hasStream(entry)) {
