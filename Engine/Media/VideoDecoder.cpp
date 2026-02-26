@@ -227,8 +227,9 @@ void MediaProcController::VideoDecoder::processFrame(MediaFrame &vf) {
 		uint8_t *data[]{static_cast<uint8_t *>(workingSurface->pixels)};
 		int linesize[]{workingSurface->pitch};
 
+		sendToLog(LogLevel::Info, "processFrame: imageConvertSourceFormat=%d frame->format=%d hardwareConversion=%d frame=%dx%d surface=%dx%d\n",
+		          imageConvertSourceFormat, frame->format, media.hardwareConversion, frame->width, frame->height, workingSurface->w, workingSurface->h);
 		if (imageConvertSourceFormat != frame->format) {
-			/* Check if we can use shader later on for conversion */
 			if (media.hardwareConversion && HardwareDecoderIFace::isFormatHWConverted(static_cast<AVPixelFormat>(frame->format))) {
 
 				for (size_t i = 0; frame->data[i]; i++) {

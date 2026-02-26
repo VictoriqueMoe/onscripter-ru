@@ -76,6 +76,8 @@ bool MediaLayer::loadPresentation(bool alphaMasked, bool loop, std::string &sub_
 
 	videoRect.w = frameWidth;
 	videoRect.h = frameHeight;
+	sendToLog(LogLevel::Info, "loadPresentation: videoRect=%dx%d wFactor=%.2f hFactor=%.2f alphaMasked=%d\n",
+	          frameWidth, frameHeight, wFactor, hFactor, alphaMasked);
 
 	/* Prepare GPU_Images */
 
@@ -243,8 +245,8 @@ bool MediaLayer::update(bool old) {
 			// This is not a mistake, frame update logic does not depend on old
 			// old is only relevant in sprite verification
 			auto frame = frame_gpu[NewFrame] ? frame_gpu[NewFrame] : frame_gpu[DefFrame];
-			sendToLog(LogLevel::Info, "Rendering frame %d: srcFormat=%d surface=%p frame_gpu=%p mask_gpu=%p videoRect=%dx%d\n",
-			          thisVideoFrame->frameNumber, thisVideoFrame->srcFormat, thisVideoFrame->surface, frame, mask_gpu, static_cast<int>(videoRect.w), static_cast<int>(videoRect.h));
+			sendToLog(LogLevel::Info, "Rendering frame %lld: srcFormat=%d surface=%p frame_gpu=%p mask_gpu=%p videoRect=%dx%d\n",
+			          static_cast<long long>(thisVideoFrame->frameNumber), thisVideoFrame->srcFormat, thisVideoFrame->surface, frame, mask_gpu, static_cast<int>(videoRect.w), static_cast<int>(videoRect.h));
 			if (thisVideoFrame->srcFormat == AV_PIX_FMT_NV12 || thisVideoFrame->srcFormat == AV_PIX_FMT_YUV420P) {
 				ensurePlanesImgs(thisVideoFrame->srcFormat, thisVideoFrame->planesCnt, videoRect.w, mask_gpu ? videoRect.h * 2 : videoRect.h);
 				if (thisVideoFrame->srcFormat == AV_PIX_FMT_NV12) {

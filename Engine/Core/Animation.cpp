@@ -1279,9 +1279,9 @@ void ONScripter::drawToGPUTarget(GPU_Target *target, AnimationInfo *info, int re
 		auto handler      = getLayer<Layer>(info->layer_no, false);
 		auto layer_target = target;
 		auto mode         = handler->blendingMode(refresh_mode);
+		sendToLog(LogLevel::Info, "drawToGPUTarget: TRANS_LAYER sprite id=%d layer_no=%d rm=0x%x\n", info->id, info->layer_no, refresh_mode);
 		if (sprite_transformation_image)
 			layer_target = sprite_transformation_image->target;
-		// TODO: Layers need some kind of support for flip at least. They may need to use a sprite_transformation_image if they have one of those properties set.
 		if (mode != BlendModeId::NORMAL)
 			gpu.pushBlendMode(mode);
 		handler->refresh(layer_target, real_clip, coord_x, coord_y, centre_coordinates, refresh_mode,
