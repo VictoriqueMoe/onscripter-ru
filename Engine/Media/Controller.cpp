@@ -526,9 +526,6 @@ void MediaProcController::pumpSynchronous(int maxVideoFrames) {
 		}
 
 		if (entry == SubsEntry) {
-			if (packet->buf && packet->buf->size > 0) {
-				processSubsData(reinterpret_cast<char *>(packet->buf->data), packet->buf->size);
-			}
 			av_packet_unref(packet);
 			continue;
 		}
@@ -547,7 +544,6 @@ void MediaProcController::pumpSynchronous(int maxVideoFrames) {
 
 			if (vf->has()) {
 				if (entry == VideoEntry) {
-					applySubtitles(*vf);
 					videoFramesDecoded++;
 				}
 
