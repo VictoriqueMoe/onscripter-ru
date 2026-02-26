@@ -76,8 +76,6 @@ bool MediaLayer::loadPresentation(bool alphaMasked, bool loop, std::string &sub_
 
 	videoRect.w = frameWidth;
 	videoRect.h = frameHeight;
-	sendToLog(LogLevel::Info, "loadPresentation: videoRect=%dx%d wFactor=%.2f hFactor=%.2f alphaMasked=%d\n",
-	          frameWidth, frameHeight, wFactor, hFactor, alphaMasked);
 
 	/* Prepare GPU_Images */
 
@@ -235,8 +233,6 @@ bool MediaLayer::update(bool old) {
 	if (framesToAdvance > 0) {
 		bool endOfFile      = false;
 		auto thisVideoFrame = media.advanceVideoFrames(framesToAdvance, endOfFile);
-		sendToLog(LogLevel::Info, "update: fta=%d got=%p eof=%d videoState=0x%x\n",
-		          framesToAdvance, thisVideoFrame.get(), endOfFile, videoState);
 		if (endOfFile)
 			videoState |= VS_END_OF_FILE;
 
@@ -274,10 +270,8 @@ void MediaLayer::refresh(GPU_Target *target, GPU_Rect &clip, float x, float y, b
 	auto frame = (!(rm & REFRESH_BEFORESCENE_MODE) && frame_gpu[NewFrame]) ? frame_gpu[NewFrame] : frame_gpu[DefFrame];
 
 	if (!frame || clip.w == 0 || clip.h == 0) {
-		sendToLog(LogLevel::Info, "MediaLayer::refresh SKIPPED frame=%p clip=%fx%f\n", frame, clip.w, clip.h);
 		return;
 	}
-	sendToLog(LogLevel::Info, "MediaLayer::refresh DRAWING frame=%dx%d at %.0f,%.0f\n", frame->w, frame->h, x, y);
 
 	if (!centre_coordinates) {
 		x += (frame->w * wFactor) / 2.0;
