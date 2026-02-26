@@ -18,6 +18,7 @@
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
+#include "Support/FileIO.hpp"
 #endif
 
 MediaProcController media;
@@ -171,6 +172,13 @@ bool MediaProcController::loadVideo(const char *filename, unsigned audioStream, 
 	if (!filename) {
 		return false;
 	}
+
+#ifdef __EMSCRIPTEN__
+	FILE *prefetch = FileIO::openFile(filename, "rb");
+	if (prefetch) {
+		std::fclose(prefetch);
+	}
+#endif
 
 	int err = avformat_open_input(&formatContext, filename, nullptr, nullptr);
 
