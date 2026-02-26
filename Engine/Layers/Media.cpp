@@ -235,6 +235,8 @@ bool MediaLayer::update(bool old) {
 	if (framesToAdvance > 0) {
 		bool endOfFile      = false;
 		auto thisVideoFrame = media.advanceVideoFrames(framesToAdvance, endOfFile);
+		sendToLog(LogLevel::Info, "update: fta=%d got=%p eof=%d videoState=0x%x\n",
+		          framesToAdvance, thisVideoFrame.get(), endOfFile, videoState);
 		if (endOfFile)
 			videoState |= VS_END_OF_FILE;
 
