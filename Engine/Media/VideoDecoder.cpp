@@ -150,15 +150,23 @@ bool MediaProcController::VideoDecoder::initSwsContext(int dstW, int dstH, const
 	if (!format)
 		format = &codecContext->pix_fmt;
 
-#ifndef __EMSCRIPTEN__
 	// Initially allow trying hardware converter
 	if (!forHardware && imageConvertSourceFormat == AV_PIX_FMT_NONE && HardwareDecoderIFace::isFormatHWConverted(*format)) {
 		return true;
 	}
-#endif
 
 	imageConvertSourceFormat = *format;
+	sendToLog(LogLevel::Info, "initSwsContext: src=%dx%d fmt=%d, dst=%dx%d, forHardware=%d\n",
+	          codecContext->width, codecContext->height, static_cast<int>(imageConvertSourceFormat), dstW, dstH, forHardware);
 
+#ifdef __EMSCRIPTEN__
+	imageConvertContext = sws_getContext(codecContext->width,
+	                                    codecContext->height,
+	                                    imageConvertSourceFormat,
+	                                    dstW, dstH,
+	                                    AV_PIX_FMT_RGB24, SWS_FAST_BILINEAR,
+	                                    nullptr, nullptr, nullptr);
+#else
 	imageConvertContext = sws_getCachedContext(nullptr,
 	                                           codecContext->width,
 	                                           codecContext->height,
@@ -166,11 +174,13 @@ bool MediaProcController::VideoDecoder::initSwsContext(int dstW, int dstH, const
 	                                           dstW, dstH,
 	                                           AV_PIX_FMT_RGB24, SWS_BICUBIC,
 	                                           nullptr, nullptr, nullptr);
+#endif
 
 	if (!imageConvertContext) {
 		return false;
 	}
 
+#ifndef __EMSCRIPTEN__
 	int *inv_table, *table, srcRange, dstRange, brightness, contrast, saturation;
 	// Due to "science cannot answer this question" reasons, ffmpeg enforces SMPTE 170M tables
 	// at yuv2rgb conversion (mpeg & SMPTE 170M -> mpeg & SMPTE 170M). Even theoretically this
@@ -183,6 +193,7 @@ bool MediaProcController::VideoDecoder::initSwsContext(int dstW, int dstH, const
 		                         sws_getCoefficients(SWS_CS_ITU709), 0,
 		                         brightness, contrast, saturation);
 	}
+#endif
 
 	return true;
 }
@@ -214,6 +225,8 @@ void MediaProcController::VideoDecoder::processFrame(MediaFrame &vf) {
 		int linesize[]{workingSurface->pitch};
 
 		if (imageConvertSourceFormat != frame->format) {
+			sendToLog(LogLevel::Info, "processFrame format mismatch: imageConvertSourceFormat=%d, frame->format=%d, codecContext->pix_fmt=%d, codecContext=%dx%d, surface=%dx%d\n",
+			          imageConvertSourceFormat, frame->format, codecContext->pix_fmt, codecContext->width, codecContext->height, workingSurface->w, workingSurface->h);
 			/* Check if we can use shader later on for conversion */
 			if (media.hardwareConversion && HardwareDecoderIFace::isFormatHWConverted(static_cast<AVPixelFormat>(frame->format))) {
 
