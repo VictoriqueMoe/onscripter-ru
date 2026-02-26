@@ -230,9 +230,12 @@ bool MediaLayer::update(bool old) {
 	}
 #endif
 
+	sendToLog(LogLevel::Info, "MediaLayer::update framesToAdvance=%d videoState=0x%x\n", framesToAdvance, videoState);
+
 	if (framesToAdvance > 0) {
 		bool endOfFile      = false;
 		auto thisVideoFrame = media.advanceVideoFrames(framesToAdvance, endOfFile);
+		sendToLog(LogLevel::Info, "advanceVideoFrames: got=%p eof=%d\n", thisVideoFrame.get(), endOfFile);
 		if (endOfFile)
 			videoState |= VS_END_OF_FILE;
 
@@ -240,10 +243,8 @@ bool MediaLayer::update(bool old) {
 			// This is not a mistake, frame update logic does not depend on old
 			// old is only relevant in sprite verification
 			auto frame = frame_gpu[NewFrame] ? frame_gpu[NewFrame] : frame_gpu[DefFrame];
-			//sendToLog(LogLevel::Info, "[Frame %lld] Fmt: %d(nv12<%d>,yuv420p<%d>), planes: %d<%d, %d, %d>, gpu out: %dx%d\n",
-			//			thisVideoFrame->frameNumber, thisVideoFrame->srcFormat, AV_PIX_FMT_NV12, AV_PIX_FMT_YUV420P,
-			//			thisVideoFrame->planesCnt, thisVideoFrame->linesize[0], thisVideoFrame->linesize[1], thisVideoFrame->linesize[2],
-			//			frame->w, frame->h);
+			sendToLog(LogLevel::Info, "Rendering frame %d: srcFormat=%d surface=%p frame_gpu=%p mask_gpu=%p videoRect=%dx%d\n",
+			          thisVideoFrame->frameNumber, thisVideoFrame->srcFormat, thisVideoFrame->surface, frame, mask_gpu, static_cast<int>(videoRect.w), static_cast<int>(videoRect.h));
 			if (thisVideoFrame->srcFormat == AV_PIX_FMT_NV12 || thisVideoFrame->srcFormat == AV_PIX_FMT_YUV420P) {
 				ensurePlanesImgs(thisVideoFrame->srcFormat, thisVideoFrame->planesCnt, videoRect.w, mask_gpu ? videoRect.h * 2 : videoRect.h);
 				if (thisVideoFrame->srcFormat == AV_PIX_FMT_NV12) {
@@ -273,10 +274,11 @@ bool MediaLayer::update(bool old) {
 void MediaLayer::refresh(GPU_Target *target, GPU_Rect &clip, float x, float y, bool centre_coordinates, int rm, float scalex, float scaley) {
 	auto frame = (!(rm & REFRESH_BEFORESCENE_MODE) && frame_gpu[NewFrame]) ? frame_gpu[NewFrame] : frame_gpu[DefFrame];
 
-	// I think this should never happen actually
 	if (!frame || clip.w == 0 || clip.h == 0) {
+		sendToLog(LogLevel::Info, "MediaLayer::refresh SKIPPED frame=%p clip=%fx%f\n", frame, clip.w, clip.h);
 		return;
 	}
+	sendToLog(LogLevel::Info, "MediaLayer::refresh DRAWING frame=%dx%d at %.0f,%.0f\n", frame->w, frame->h, x, y);
 
 	if (!centre_coordinates) {
 		x += (frame->w * wFactor) / 2.0;
