@@ -101,12 +101,31 @@ bool SubtitleLayer::update(bool /*old*/) {
 	if (!clockProceed())
 		return true;
 
+#ifdef __EMSCRIPTEN__
+	if (!current_frame) {
+		return true;
+	}
+
+	std::vector<SubtitleImage> imgs;
+	ASS_Image *img{nullptr};
+	int changed = subtitleDriver.extractFrame(imgs, display_timestamp / 1000000, &img);
+
+	if (changed > 0 && !imgs.empty()) {
+		renderImageSet(imgs);
+	} else if (changed < 0) {
+		const size_t frame_size = width * height * 4;
+		auto sw_buffer = std::make_unique<uint8_t[]>(frame_size);
+		subtitleDriver.blendBufInNeed(sw_buffer.get(), width, current_frame_format, img);
+		GPU_UpdateImageBytes(current_frame, nullptr, sw_buffer.get(), width * 4);
+	}
+#else
 	SDL_LockMutex(frameQueueMutex);
 
 	//CHECKME: may it deadlock here on quit?
 	while (decoded_timestamp < decode_rate || decoded_timestamp - decode_rate < display_timestamp) {
-		if (frameQueue.size() == frameQueueMaxSize)
+		if (frameQueue.size() == frameQueueMaxSize) {
 			break;
+		}
 		SDL_UnlockMutex(frameQueueMutex);
 		SDL_Delay(1); //TODO: replace by semaphores
 		SDL_LockMutex(frameQueueMutex);
@@ -147,8 +166,9 @@ bool SubtitleLayer::update(bool /*old*/) {
 		current_timestamp = it->start_timestamp;
 	}
 
-	if (it - frameQueue.begin() > 1)
+	if (it - frameQueue.begin() > 1) {
 		frameQueue.erase(frameQueue.begin(), it - 1);
+	}
 
 	SDL_UnlockMutex(frameQueueMutex);
 
@@ -161,6 +181,7 @@ bool SubtitleLayer::update(bool /*old*/) {
 			gpu.clearWholeTarget(current_frame->target);
 		}
 	}
+#endif
 	return true;
 }
 
@@ -258,18 +279,24 @@ void SubtitleLayer::doDecoding() {
 }
 
 bool SubtitleLayer::startDecoding() {
-	if (!frameQueueMutex)
+#ifndef __EMSCRIPTEN__
+	if (!frameQueueMutex) {
 		frameQueueMutex = SDL_CreateMutex();
-	if (!threadSemaphore)
+	}
+	if (!threadSemaphore) {
 		threadSemaphore = SDL_CreateSemaphore(0);
+	}
+#endif
 
 	decoded_timestamp = 0;
 	display_timestamp = 0;
 	mediaClock.reset();
 	nanosPerFrame = 1000000000 / (ons.game_fps ? ons.game_fps : DEFAULT_FPS);
-	frameQueue.emplace_back(); // zero frame
 
+#ifndef __EMSCRIPTEN__
+	frameQueue.emplace_back(); // zero frame
 	async.loadSubtitleFrames(this);
+#endif
 
 	playback = true;
 
@@ -277,6 +304,7 @@ bool SubtitleLayer::startDecoding() {
 }
 
 void SubtitleLayer::endDecoding() {
+#ifndef __EMSCRIPTEN__
 	if (threadSemaphore) {
 		should_finish.store(true, std::memory_order_release);
 		SDL_SemWait(threadSemaphore);
@@ -285,11 +313,13 @@ void SubtitleLayer::endDecoding() {
 		should_finish.store(false, std::memory_order_seq_cst);
 	}
 
-	playback = false;
-
-	if (frameQueueMutex)
+	if (frameQueueMutex) {
 		SDL_DestroyMutex(frameQueueMutex);
+	}
 	frameQueueMutex = nullptr;
+#endif
+
+	playback = false;
 }
 
 bool SubtitleLayer::clockProceed() {
