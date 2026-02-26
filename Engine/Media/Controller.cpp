@@ -476,15 +476,22 @@ void MediaProcController::pumpSynchronous(int maxVideoFrames) {
 	SDL_AtomicLock(&async.loadFramesQueue[VideoEntry].resultsLock);
 	bool alreadyEOF = !async.loadFramesQueue[VideoEntry].results.empty() &&
 	                  async.loadFramesQueue[VideoEntry].results.back() == nullptr;
+	size_t currentQueueSize = async.loadFramesQueue[VideoEntry].results.size();
 	SDL_AtomicUnlock(&async.loadFramesQueue[VideoEntry].resultsLock);
 	if (alreadyEOF) {
 		return;
 	}
 
+	constexpr size_t maxQueueSize = 6;
+	if (currentQueueSize >= maxQueueSize) {
+		return;
+	}
+
+	int allowedFrames = std::min(maxVideoFrames, static_cast<int>(maxQueueSize - currentQueueSize));
 	int videoFramesDecoded = 0;
 	AVPacket *packet = av_packet_alloc();
 
-	while (videoFramesDecoded < maxVideoFrames) {
+	while (videoFramesDecoded < allowedFrames) {
 		int readResult = av_read_frame(formatContext, packet);
 
 		if (readResult < 0) {
