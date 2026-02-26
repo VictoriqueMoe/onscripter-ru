@@ -681,6 +681,11 @@ void ONScripter::dirtySpriteRect(int num, bool lsp2, bool before) {
 
 	dirty->add(toAdd);
 
+	if (num == 963) {
+		sendToLog(LogLevel::Info, "dirtySpriteRect: num=%d before=%d toAdd=%.0f,%.0f,%.0f,%.0f dirty_empty=%d old_ai=%p\n",
+		          num, before, toAdd.x, toAdd.y, toAdd.w, toAdd.h, dirty->isEmpty(), spr->old_ai);
+	}
+
 	if (num > z_order_hud) {
 		SpritesetInfo *cleanSet{nullptr};
 		// Sets 1+

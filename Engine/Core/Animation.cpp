@@ -103,9 +103,12 @@ int ONScripter::estimateNextDuration(AnimationInfo *anim, GPU_Rect & /*rect*/, i
 			}
 		} else if (anim->layer_no >= 0) {
 			auto handler = getLayer<Layer>(anim->layer_no, false);
-			//sendToLog(LogLevel::Info, "About to update AI %p, anim->clock.time() %d\n", anim, anim->clock.time());
-			if (handler->update(old_ai))
+			bool updated = handler->update(old_ai);
+			sendToLog(LogLevel::Info, "estimateNextDuration: layer=%d id=%d updated=%d old_ai=%d pos=%.0fx%.0f visible=%d\n",
+			          anim->layer_no, anim->id, updated, old_ai, anim->pos.w, anim->pos.h, anim->visible);
+			if (updated) {
 				dirtySpriteRect(anim, old_ai);
+			}
 			anim->clock.setCountdownNanos(anim->getDurationNanos(anim->current_cell));
 			if ((minimum == -1) ||
 			    (minimum > anim->getDuration(anim->current_cell)))
