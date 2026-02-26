@@ -19,6 +19,10 @@
 #endif
 
 #ifdef __EMSCRIPTEN__
+extern "C" void emscripten_sync_idbfs();
+#endif
+
+#ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #endif
 
@@ -423,6 +427,16 @@ void ONScripter::waitEvent(int count, bool nopPreferred) {
 		}
 
 		//sendToLog(LogLevel::Info,"  flipped -- aimed for %i ms, took %i ms\n", constant_refresh_interval, ticksNow - lastFlipTime);
+#ifdef __EMSCRIPTEN__
+		{
+			static unsigned int lastSyncTime = 0;
+			if (ticksNow - lastSyncTime >= 10000) {
+				lastSyncTime = ticksNow;
+				saveAll(true);
+				emscripten_sync_idbfs();
+			}
+		}
+#endif
 		lastFlipTime = ticksNow;
 
 		//printClock("(next iteration)");
