@@ -1091,7 +1091,11 @@ int ONScripter::ownInit() {
 #else
 	bool enableHwdec = hwdec == ons_cfg_options.end() || hwdec->second == "on";
 #endif
+#ifdef __EMSCRIPTEN__
+	bool enableHwConv = false;
+#else
 	bool enableHwConv = hwconv == ons_cfg_options.end() || hwconv->second == "on";
+#endif
 	media.setHardwareDecoding(enableHwdec, enableHwConv);
 
 	async.init();

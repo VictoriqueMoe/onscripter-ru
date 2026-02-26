@@ -150,10 +150,12 @@ bool MediaProcController::VideoDecoder::initSwsContext(int dstW, int dstH, const
 	if (!format)
 		format = &codecContext->pix_fmt;
 
+#ifndef __EMSCRIPTEN__
 	// Initially allow trying hardware converter
 	if (!forHardware && imageConvertSourceFormat == AV_PIX_FMT_NONE && HardwareDecoderIFace::isFormatHWConverted(*format)) {
 		return true;
 	}
+#endif
 
 	imageConvertSourceFormat = *format;
 
