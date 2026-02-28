@@ -559,6 +559,9 @@ void MediaProcController::pumpSynchronous(int maxVideoFrames) {
 
 			if (vf->has()) {
 				if (entry == VideoEntry) {
+					if (hasStream(SubsEntry)) {
+						applySubtitles(*vf);
+					}
 					videoFramesDecoded++;
 				}
 
