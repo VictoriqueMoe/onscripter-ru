@@ -270,31 +270,6 @@ bool WindowController::updateDisplayData(bool getpos) {
 	return false;
 }
 
-#ifdef __EMSCRIPTEN__
-static EM_BOOL onCanvasResized(int eventType, const void *reserved, void *userData) {
-	if (!window.getFullscreen()) {
-		return EM_TRUE;
-	}
-	int w, h;
-	emscripten_get_canvas_element_size("#canvas", &w, &h);
-	if (w > 0 && h > 0) {
-		window.completeFullscreenTransition(w, h);
-	}
-	return EM_TRUE;
-}
-
-void WindowController::completeFullscreenTransition(int w, int h) {
-	screen_width = w;
-	screen_height = h;
-	fullscript_offset_x = 0;
-	fullscript_offset_y = 0;
-	GPU_SetWindowResolution(w, h);
-	gpu.setVirtualResolution(script_width, script_height);
-	ons.screen_target = GPU_GetContextTarget();
-	fullscreen_needs_fix = false;
-	gpu.clearWholeTarget(ons.screen_target);
-}
-#endif
 
 bool WindowController::changeMode(bool perform, bool correct, int mode) {
 	// To my regret SDL & SDL_gpu fullscreen APIs are neither convenient, nor perfect.
@@ -309,34 +284,20 @@ bool WindowController::changeMode(bool perform, bool correct, int mode) {
 #ifdef __EMSCRIPTEN__
 	if (perform && mode >= 0 && static_cast<int>(fullscreen_mode) != mode) {
 		if (mode == 1) {
-			emscripten_get_canvas_element_size("#canvas",
-				&windowed_canvas_pixel_width, &windowed_canvas_pixel_height);
-
 			EmscriptenFullscreenStrategy strategy{};
 			strategy.scaleMode = EMSCRIPTEN_FULLSCREEN_SCALE_ASPECT;
-			strategy.canvasResolutionScaleMode = EMSCRIPTEN_FULLSCREEN_CANVAS_SCALE_STDDEF;
+			strategy.canvasResolutionScaleMode = EMSCRIPTEN_FULLSCREEN_CANVAS_SCALE_NONE;
 			strategy.filteringMode = EMSCRIPTEN_FULLSCREEN_FILTERING_DEFAULT;
-			strategy.canvasResizedCallback = onCanvasResized;
+			strategy.canvasResizedCallback = nullptr;
 			strategy.canvasResizedCallbackUserData = nullptr;
 
 			fullscreen_mode = true;
+			fullscript_offset_x = 0;
+			fullscript_offset_y = 0;
 			emscripten_request_fullscreen_strategy("#canvas", true, &strategy);
 		} else {
 			emscripten_exit_fullscreen();
 			fullscreen_mode = false;
-
-			if (windowed_canvas_pixel_width > 0 && windowed_canvas_pixel_height > 0) {
-				emscripten_set_canvas_element_size("#canvas",
-					windowed_canvas_pixel_width, windowed_canvas_pixel_height);
-			}
-
-			screen_width = windowed_screen_width;
-			screen_height = windowed_screen_height;
-			GPU_SetWindowResolution(screen_width, screen_height);
-			gpu.setVirtualResolution(script_width, script_height);
-			ons.screen_target = GPU_GetContextTarget();
-			fullscreen_needs_fix = false;
-			gpu.clearWholeTarget(ons.screen_target);
 		}
 	}
 

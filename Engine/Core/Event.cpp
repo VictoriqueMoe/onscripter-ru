@@ -102,7 +102,11 @@ EMSCRIPTEN_KEEPALIVE void ons_toggle_fullscreen() {
 	SDL_PushEvent(&event);
 }
 
-EMSCRIPTEN_KEEPALIVE void ons_mouse_event(int type, int x, int y, int button) {
+EMSCRIPTEN_KEEPALIVE void ons_mouse_event(int type, float nx, float ny, int button) {
+	int sw, sh;
+	window.getWindowSize(sw, sh);
+	int x = static_cast<int>(nx * sw);
+	int y = static_cast<int>(ny * sh);
 	SDL_Event event{};
 	if (type == 0) {
 		event.type = SDL_MOUSEBUTTONDOWN;
