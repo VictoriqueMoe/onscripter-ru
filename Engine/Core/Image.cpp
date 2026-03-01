@@ -303,13 +303,16 @@ SDL_Surface *ONScripter::createSurfaceFromFile(const char *filename) {
 	SDL_RWops *src   = SDL_RWFromMem(buffer, static_cast<int>(length));
 	SDL_Surface *tmp = nullptr;
 
+#ifndef __EMSCRIPTEN__
 	if (ext && (equalstr(ext + 1, "PNG") || equalstr(ext + 1, "png"))) {
 		PNGLoader *loader = pngImageLoaderPool.getLoader();
 		tmp               = loader->loadPng(src);
-		if (!tmp)
+		if (!tmp) {
 			sendToLog(LogLevel::Error, "Failed to use internal PNGLoader on %s\n", filename);
+		}
 		pngImageLoaderPool.giveLoader(loader);
 	}
+#endif
 
 	if (!tmp) {
 		Lock lock(&surfaceCreationLockVar);
