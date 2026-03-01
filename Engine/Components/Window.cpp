@@ -322,13 +322,13 @@ bool WindowController::changeMode(bool perform, bool correct, int mode) {
 			strategy.canvasResizedCallbackUserData = nullptr;
 
 			fullscreen_mode = true;
-			emscripten_enter_soft_fullscreen("#canvas", &strategy);
+			emscripten_request_fullscreen_strategy("#canvas", true, &strategy);
 
 			int w, h;
 			emscripten_get_canvas_element_size("#canvas", &w, &h);
 			completeFullscreenTransition(w, h);
 		} else {
-			emscripten_exit_soft_fullscreen();
+			emscripten_exit_fullscreen();
 			fullscreen_mode = false;
 
 			if (windowed_canvas_pixel_width > 0 && windowed_canvas_pixel_height > 0) {
