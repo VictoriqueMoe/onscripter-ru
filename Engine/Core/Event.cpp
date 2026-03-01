@@ -102,13 +102,28 @@ EMSCRIPTEN_KEEPALIVE void ons_toggle_fullscreen() {
 	SDL_PushEvent(&event);
 }
 
-EMSCRIPTEN_KEEPALIVE void ons_right_click() {
+EMSCRIPTEN_KEEPALIVE void ons_mouse_event(int type, int x, int y, int button) {
 	SDL_Event event{};
-	event.type = SDL_FINGERUP;
-	event.tfinger.fingerId = 2;
-	event.tfinger.x = 0.5f;
-	event.tfinger.y = 0.5f;
-	event.tfinger.timestamp = SDL_GetTicks();
+	if (type == 0) {
+		event.type = SDL_MOUSEBUTTONDOWN;
+		event.button.type = SDL_MOUSEBUTTONDOWN;
+		event.button.button = button == 2 ? SDL_BUTTON_RIGHT : SDL_BUTTON_LEFT;
+		event.button.state = SDL_PRESSED;
+		event.button.x = x;
+		event.button.y = y;
+	} else if (type == 1) {
+		event.type = SDL_MOUSEBUTTONUP;
+		event.button.type = SDL_MOUSEBUTTONUP;
+		event.button.button = button == 2 ? SDL_BUTTON_RIGHT : SDL_BUTTON_LEFT;
+		event.button.state = SDL_RELEASED;
+		event.button.x = x;
+		event.button.y = y;
+	} else if (type == 2) {
+		event.type = SDL_MOUSEMOTION;
+		event.motion.type = SDL_MOUSEMOTION;
+		event.motion.x = x;
+		event.motion.y = y;
+	}
 	SDL_PushEvent(&event);
 }
 }
