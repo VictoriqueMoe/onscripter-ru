@@ -32,7 +32,20 @@
 EM_ASYNC_JS(int, emscripten_fetch_to_vfs_async, (const char *c_path), {
 	var path = UTF8ToString(c_path);
 	try {
-		var response = await fetch(path);
+		var optimisedPath = path
+			.replace(/\.png$/i, '.webp')
+			.replace(/\.mp4$/i, '.webm');
+
+		var response;
+		if (optimisedPath !== path) {
+			response = await fetch(optimisedPath);
+			if (!response.ok) {
+				response = await fetch(path);
+			}
+		} else {
+			response = await fetch(path);
+		}
+
 		if (!response.ok) {
 			return -1;
 		}
