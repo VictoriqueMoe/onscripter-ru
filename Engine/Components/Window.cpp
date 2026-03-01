@@ -288,7 +288,6 @@ void WindowController::completeFullscreenTransition(int w, int h) {
 	ons.screen_target = GPU_GetContextTarget();
 	fullscreen_needs_fix = false;
 	gpu.clearWholeTarget(ons.screen_target);
-	ons.fillCanvas(true, true);
 }
 #endif
 
@@ -337,7 +336,6 @@ bool WindowController::changeMode(bool perform, bool correct, int mode) {
 			ons.screen_target = GPU_GetContextTarget();
 			fullscreen_needs_fix = false;
 			gpu.clearWholeTarget(ons.screen_target);
-			ons.fillCanvas(true, true);
 		}
 	}
 

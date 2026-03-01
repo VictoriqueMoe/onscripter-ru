@@ -736,8 +736,11 @@ void ONScripter::initSDL() {
 		                 }
 	                 }});
 	// We want a working fullscreen entry
-	enableFullscreen([]() {
+	enableFullscreen([this]() {
 		window.changeMode(true, false, 1);
+#ifdef __EMSCRIPTEN__
+		fillCanvas(true, true);
+#endif
 	},
 	                 1);
 	// We need this for error message windows

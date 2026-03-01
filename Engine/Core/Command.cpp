@@ -1582,12 +1582,18 @@ int ONScripter::mesboxCommand() {
 int ONScripter::menu_windowCommand() {
 #if !defined(IOS) && !defined(DROID)
 	window.changeMode(true, false, 0);
+#ifdef __EMSCRIPTEN__
+	fillCanvas(true, true);
+#endif
 #endif
 	return RET_CONTINUE;
 }
 
 int ONScripter::menu_fullCommand() {
 	window.changeMode(true, false, 1);
+#ifdef __EMSCRIPTEN__
+	fillCanvas(true, true);
+#endif
 	return RET_CONTINUE;
 }
 

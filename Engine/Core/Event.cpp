@@ -1242,8 +1242,11 @@ bool ONScripter::keyPressEvent(SDL_KeyboardEvent &event, EventProcessingState &s
 #if !defined(IOS) && !defined(DROID)
 	//'f' is for fullscreen toggle
 	if (event.keysym.scancode == SDL_SCANCODE_F && !state.keyState.ctrl) {
-		addToPostponedEventChanges("change window mode", []() {
+		addToPostponedEventChanges("change window mode", [this]() {
 			window.changeMode(true, false, !window.getFullscreen());
+#ifdef __EMSCRIPTEN__
+			fillCanvas(true, true);
+#endif
 		});
 	}
 #endif
