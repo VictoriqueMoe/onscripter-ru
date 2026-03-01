@@ -76,6 +76,11 @@ class WindowController : public BaseController {
 	// Currently in fullscreen transition state.
 	bool fullscreen_needs_fix{false};
 
+#ifdef __EMSCRIPTEN__
+	int windowed_canvas_pixel_width{0};
+	int windowed_canvas_pixel_height{0};
+#endif
+
 public:
 	// Resolution the script runs at.
 	int script_width{0}, script_height{0};
@@ -112,6 +117,10 @@ public:
 	bool getFullscreenFix() {
 		return fullscreen_needs_fix;
 	}
+
+#ifdef __EMSCRIPTEN__
+	void completeFullscreenTransition(int w, int h);
+#endif
 
 	WindowController()
 	    : BaseController(this) {}

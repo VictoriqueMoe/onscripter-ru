@@ -1667,6 +1667,7 @@ void ONScripter::runEventLoop() {
 						break;
 
 					case SDL_WINDOWEVENT:
+#ifndef __EMSCRIPTEN__
 #ifdef MACOSX
 						// OS X specific: We are done exiting fullscreen mode and the animation has finished
 						if (event->window.event == SDL_WINDOWEVENT_RESTORED && window.getFullscreenFix() && !window.getFullscreen()) {
@@ -1699,6 +1700,7 @@ void ONScripter::runEventLoop() {
 							before_dirty_rect_scene.fill(window.canvas_width, window.canvas_height);
 							//fillCanvas(false, true);
 						}
+#endif
 
 						break;
 					case SDL_QUIT:
