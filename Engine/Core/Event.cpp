@@ -92,6 +92,28 @@ extern "C" void waveCallback(int channel) {
 	SDL_PushEvent(&event);
 }
 
+#ifdef __EMSCRIPTEN__
+extern "C" {
+EMSCRIPTEN_KEEPALIVE void ons_toggle_fullscreen() {
+	SDL_Event event{};
+	event.type = SDL_KEYUP;
+	event.key.keysym.scancode = SDL_SCANCODE_F;
+	event.key.keysym.mod = 0;
+	SDL_PushEvent(&event);
+}
+
+EMSCRIPTEN_KEEPALIVE void ons_right_click() {
+	SDL_Event event{};
+	event.type = SDL_FINGERUP;
+	event.tfinger.fingerId = 2;
+	event.tfinger.x = 0.5f;
+	event.tfinger.y = 0.5f;
+	event.tfinger.timestamp = SDL_GetTicks();
+	SDL_PushEvent(&event);
+}
+}
+#endif
+
 void ONScripter::flushEventSub(SDL_Event &event) {
 	//event related to streaming media
 	if (event.user.code == ONS_MUSIC_EVENT && event.type == SDL_USEREVENT) {
@@ -1545,32 +1567,34 @@ void ONScripter::runEventLoop() {
 						});
 						break;
 
-#if defined(IOS) || defined(DROID)
+#if defined(IOS) || defined(DROID) || defined(__EMSCRIPTEN__)
 					case SDL_MULTIGESTURE:
-						// Such a thing called crapdroid sends erratic move events on move attempts
-						// with a distance of less than 0.00X smth. Here we try to ignore them to some level,
-						// since we use gesture events to protect us from accidental r-click (double-tap) during
-						/// the scrolling.
-						if (std::fabs(event->mgesture.dDist) < 0.01 && std::fabs(event->mgesture.dTheta) < 0.01)
+						if (std::fabs(event->mgesture.dDist) < 0.01 && std::fabs(event->mgesture.dTheta) < 0.01) {
 							break;
+						}
 					case SDL_FINGERDOWN:
-						if (event->type == SDL_FINGERDOWN && !btndown_flag)
+						if (event->type == SDL_FINGERDOWN && !btndown_flag) {
 							break;
+						}
 					case SDL_FINGERUP:
-						if (state.skipMode & SKIP_SUPERSKIP)
+						if (state.skipMode & SKIP_SUPERSKIP) {
 							break;
+						}
 						ret = touchEvent(*event, state);
 						addToPostponedEventChanges([this, state]() { current_button_state = state.buttonState; skip_mode = state.skipMode; });
 						break;
-#else
+#endif
 
+#if !defined(IOS) && !defined(DROID)
 					case SDL_MOUSEBUTTONDOWN:
-						if (!btndown_flag)
+						if (!btndown_flag) {
 							break;
+						}
 						/* fall through */
 					case SDL_MOUSEBUTTONUP:
-						if (state.skipMode & SKIP_SUPERSKIP)
+						if (state.skipMode & SKIP_SUPERSKIP) {
 							break;
+						}
 						ret = mousePressEvent(event->button, state);
 						addToPostponedEventChanges([this, state]() { current_button_state = state.buttonState; skip_mode = state.skipMode; });
 						break;
