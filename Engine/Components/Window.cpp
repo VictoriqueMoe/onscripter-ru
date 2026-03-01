@@ -272,7 +272,7 @@ bool WindowController::updateDisplayData(bool getpos) {
 
 #ifdef __EMSCRIPTEN__
 static EM_BOOL onCanvasResized(int eventType, const void *reserved, void *userData) {
-	if (!window.fullscreen_mode) {
+	if (!window.getFullscreen()) {
 		return EM_TRUE;
 	}
 	int w, h;
