@@ -1567,7 +1567,7 @@ void ONScripter::runEventLoop() {
 						});
 						break;
 
-#if defined(IOS) || defined(DROID) || defined(__EMSCRIPTEN__)
+#if defined(IOS) || defined(DROID)
 					case SDL_MULTIGESTURE:
 						if (std::fabs(event->mgesture.dDist) < 0.01 && std::fabs(event->mgesture.dTheta) < 0.01) {
 							break;
@@ -1583,9 +1583,7 @@ void ONScripter::runEventLoop() {
 						ret = touchEvent(*event, state);
 						addToPostponedEventChanges([this, state]() { current_button_state = state.buttonState; skip_mode = state.skipMode; });
 						break;
-#endif
-
-#if !defined(IOS) && !defined(DROID)
+#else
 					case SDL_MOUSEBUTTONDOWN:
 						if (!btndown_flag) {
 							break;
