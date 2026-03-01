@@ -281,10 +281,17 @@ static EM_BOOL onCanvasResized(int eventType, const void *reserved, void *userDa
 void WindowController::completeFullscreenTransition(int w, int h) {
 	screen_width = w;
 	screen_height = h;
-	fullscript_offset_x = 0;
-	fullscript_offset_y = 0;
+
+	float scaleX = w / static_cast<float>(script_width);
+	float scaleY = h / static_cast<float>(script_height);
+	float scale = std::min(scaleX, scaleY);
+	int virtualW = static_cast<int>(w / scale);
+	int virtualH = static_cast<int>(h / scale);
+	fullscript_offset_x = (virtualW - script_width) / 2;
+	fullscript_offset_y = (virtualH - script_height) / 2;
+
 	GPU_SetWindowResolution(w, h);
-	gpu.setVirtualResolution(script_width, script_height);
+	gpu.setVirtualResolution(virtualW, virtualH);
 	ons.screen_target = GPU_GetContextTarget();
 	fullscreen_needs_fix = false;
 	gpu.clearWholeTarget(ons.screen_target);

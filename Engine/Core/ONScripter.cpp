@@ -510,6 +510,8 @@ void ONScripter::initSDL() {
 	SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1"); // this makes no difference but better to set it
 #ifdef __EMSCRIPTEN__
 	SDL_SetHint(SDL_HINT_EMSCRIPTEN_ASYNCIFY, "0");
+	SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
+	SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "0");
 #endif
 
 #ifdef DROID
