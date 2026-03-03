@@ -52,7 +52,35 @@ EM_ASYNC_JS(int, emscripten_fetch_to_vfs_async, (const char *c_path), {
 		if (!response.ok) {
 			return -1;
 		}
-		var data = new Uint8Array(await response.arrayBuffer());
+
+		var contentLength = response.headers.get('Content-Length');
+		var data;
+		if (contentLength && response.body) {
+			var total = parseInt(contentLength, 10);
+			var received = 0;
+			var chunks = [];
+			var reader = response.body.getReader();
+			while (true) {
+				var result = await reader.read();
+				if (result.done) {
+					break;
+				}
+				chunks.push(result.value);
+				received += result.value.length;
+				if (window.updateFetchProgress) {
+					window.updateFetchProgress(received, total);
+				}
+			}
+			data = new Uint8Array(received);
+			var offset = 0;
+			for (var i = 0; i < chunks.length; i++) {
+				data.set(chunks[i], offset);
+				offset += chunks[i].length;
+			}
+		} else {
+			data = new Uint8Array(await response.arrayBuffer());
+		}
+
 		FS.writeFile(path, data);
 		if (window.gameFileSet) {
 			window.gameFileSet.delete(path);
