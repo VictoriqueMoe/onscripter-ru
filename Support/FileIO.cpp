@@ -32,7 +32,8 @@
 EM_ASYNC_JS(int, emscripten_fetch_to_vfs_async, (const char *c_path), {
 	var path = UTF8ToString(c_path);
 	if (window.showFetchIndicator) {
-		window.showFetchIndicator();
+		var name = path.substring(path.lastIndexOf('/') + 1);
+		window.showFetchIndicator(name);
 	}
 	try {
 		var optimisedPath = path
