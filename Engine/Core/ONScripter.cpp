@@ -2090,6 +2090,7 @@ void ONScripter::readToken() {
 
 	script_h.readToken(pretext_check);
 	string_buffer_offset = 0;
+	scriptCommandCounter++;
 }
 
 /* ---------------------------------------- */

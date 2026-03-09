@@ -120,8 +120,10 @@ public:
 
 	ONScripter();
 
+	int scriptCommandCounter{0};
+
 	int getScriptPosition() {
-		return static_cast<int>(script_h.getOffset(script_h.getCurrent()));
+		return scriptCommandCounter;
 	}
 
 	bool scriptExecutionPermitted();
