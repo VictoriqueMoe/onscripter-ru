@@ -101,6 +101,14 @@ EM_ASYNC_JS(int, emscripten_fetch_to_vfs_async, (const char *c_path), {
 	}
 });
 
+EM_JS(int32_t, emscripten_get_original_file_size, (const char *c_path), {
+	var path = '/game/' + UTF8ToString(c_path);
+	if (window.originalFileSizes && window.originalFileSizes.has(path)) {
+		return window.originalFileSizes.get(path);
+	}
+	return -1;
+});
+
 static bool emscripten_needs_fetch(const char *path) {
 	struct stat st;
 	if (stat(path, &st) != 0) {
